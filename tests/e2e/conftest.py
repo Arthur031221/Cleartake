@@ -86,6 +86,12 @@ def demo_url(tmp_path_factory):
     site = tmp_path_factory.mktemp("site")
     shutil.copytree(WEB, site, dirs_exist_ok=True)
     shutil.copytree(DEMO, site / "demo")
+    page = site / "index.html"  # the Pages workflow adds this marker so the page does not probe for a server
+    page.write_text(
+        page.read_text().replace(
+            '<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="cleartake-demo" content="1">', 1
+        )
+    )
     handler = functools.partial(_Quiet, directory=str(site))
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()

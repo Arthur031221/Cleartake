@@ -51,8 +51,10 @@ thread and a queue. The page shows the queue position. Cancel sets a flag that `
 exception at the next stage boundary, so the unwinding goes through the same path as any other failure.
 
 **No build step in the UI.** `web/` is HTML, CSS and ES modules served as they are. The same files are copied to
-GitHub Pages. When `/api/health` does not answer, `app.js` switches to demo mode and loads
-`demo/original.mp3`, `demo/enhanced.mp3` and `demo/report.json`.
+GitHub Pages. The Pages workflow adds a `cleartake-demo` meta tag, so `app.js` goes straight to demo mode without probing
+`/api/health`. Without the tag it probes and falls back to demo mode when nothing answers. The demo loads
+`demo/original.mp3`, `demo/enhanced.mp3` and `demo/report.json`, or the same three files under `demo/changes/`
+for the sample where the word check fires. `tools/build_demo.py` rebuilds both.
 
 ## The A and B player
 

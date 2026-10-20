@@ -101,6 +101,7 @@
       <div class="actions">
         <button id="go" class="primary" type="button" disabled data-i18n="btn.enhance">Enhance</button>
         <button id="sample" class="ghost" type="button" hidden data-i18n="demo.try">Play the sample</button>
+        <button id="sample-changes" class="ghost" type="button" hidden data-i18n="demo.try.changes">Play a sample with changed words</button>
       </div>
     </section>
 
@@ -129,7 +130,7 @@
             <button id="clear" class="ghost small" type="button" hidden data-i18n="result.clear">Clear selection</button>
           </div>
         </div>
-        <div id="stage" class="stage" tabindex="0">
+        <div id="stage" class="stage" tabindex="0" role="group" data-i18n-aria="result.stage">
           <canvas id="spec-original" class="layer"></canvas>
           <canvas id="spec-enhanced" class="layer"></canvas>
           <canvas id="wave" class="wave"></canvas>

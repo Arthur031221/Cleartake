@@ -17,14 +17,17 @@ async function init() {
   select.addEventListener("change", () => setLanguage(select.value));
   $("theme").addEventListener("click", toggleTheme);
 
-  try {
-    const response = await fetch("api/health");
-    if (!response.ok) throw new Error("no server");
-    const health = await response.json();
-    $("version").textContent = `v${health.version}`;
-    if (!health.ffmpeg) showError(t("err.ffmpeg"));
-  } catch {
-    state.demo = true;
+  state.demo = Boolean(document.querySelector('meta[name="cleartake-demo"]'));  // the Pages build says so, no probe
+  if (!state.demo) {
+    try {
+      const response = await fetch("api/health");
+      if (!response.ok) throw new Error("no server");
+      const health = await response.json();
+      $("version").textContent = `v${health.version}`;
+      if (!health.ffmpeg) showError(t("err.ffmpeg"));
+    } catch {
+      state.demo = true;
+    }
   }
   document.documentElement.dataset.mode = state.demo ? "demo" : "app";
   if (state.demo) enterDemo();
@@ -32,7 +35,8 @@ async function init() {
   document.addEventListener("languagechange", () => { updateEngineHint(); if (state.report) renderStats(state.report); });
   updateEngineHint();
   document.documentElement.dataset.ready = "1";
-  if (new URLSearchParams(location.search).has("sample") && state.demo) loadSample();
+  const sample = new URLSearchParams(location.search).get("sample");
+  if (sample !== null && state.demo) loadSample(sample === "changes" ? "demo/changes" : "demo");
 }
 
 function toggleTheme() {
@@ -52,7 +56,9 @@ function enterDemo() {
   $("go").hidden = true;
   $("sample").hidden = false;
   $("sample").classList.replace("ghost", "primary");
-  $("sample").addEventListener("click", loadSample);
+  $("sample").addEventListener("click", () => loadSample("demo"));
+  $("sample-changes").hidden = false;
+  $("sample-changes").addEventListener("click", () => loadSample("demo/changes"));
 }
 
 let resizing = 0;
@@ -328,14 +334,14 @@ function backToFiles() {
   renderProgress();
 }
 
-async function loadSample() {
+async function loadSample(dir) {
   $("back").hidden = true;
   $("again").hidden = false;
-  $("dl-audio").href = "demo/enhanced.mp3";
-  $("dl-report").href = "demo/report.json";
+  $("dl-audio").href = `${dir}/enhanced.mp3`;
+  $("dl-report").href = `${dir}/report.json`;
   try {
-    const report = await (await fetch("demo/report.json")).json();
-    await showResult("demo/original.mp3", "demo/enhanced.mp3", report);
+    const report = await (await fetch(`${dir}/report.json`)).json();
+    await showResult(`${dir}/original.mp3`, `${dir}/enhanced.mp3`, report);
   } catch (err) {
     showError(err.message);
   }

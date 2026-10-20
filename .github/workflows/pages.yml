@@ -28,6 +28,8 @@ jobs:
           mkdir _site
           cp -r src/cleartake/web/. _site/
           cp -r docs/demo _site/demo
+          sed -i 's|<meta charset="utf-8">|&\n  <meta name="cleartake-demo" content="1">|' _site/index.html
+          grep -q cleartake-demo _site/index.html
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

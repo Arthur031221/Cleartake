@@ -53,7 +53,7 @@ files in [docs/demo](docs/demo).
 
 A denoiser doesn't fix speech, and I don't pretend it does. Cleartake removes noise, then audits the result, so a changed word shows up
 as a line in a report instead of a surprise on air. [Try it in the browser](https://arthur031221.github.io/Cleartake/).
-The hosted page plays this same clip and runs nothing.
+The hosted page plays this clip and runs nothing. It has a second one, five clips of another speaker picked from the ones where the check fired, so you can see what a flagged word looks like. Three of its 29 words differ, which is a higher rate than the benchmark's.
 
 ## The pipeline
 
@@ -186,7 +186,7 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
 * **Word error did not improve.** On this mild noise Whisper already reads the input well. Studio ended 1.2 points
   above the noisy input and classic 0.3 points below it, and on 103 clips I can't tell the two apart. Two runs of the
   same command moved by about half a point.
-* **The word check is a place to listen, not a verdict.** It reports about 7% of words as different on the benchmark,
+* **The word check points at places to listen.** It reports about 7% of words as different on the benchmark,
   and that figure includes spelling variants and words the noisy original got wrong. It won't catch a change
   Whisper can't hear.
 * **The loudness target can be missed by about 0.5 LU** when the true peak ceiling stops the gain first.
@@ -203,7 +203,7 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
 
 ```bash
 uv pip install -e ".[dev]" && playwright install chromium
-pytest                 # 85 tests, includes browser tests of the web app
+pytest                 # 87 tests, includes browser tests of the web app
 pytest -m model        # 2 more that load the real models
 ruff check . && ruff format --check .
 ```

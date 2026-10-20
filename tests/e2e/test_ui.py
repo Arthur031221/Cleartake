@@ -4,6 +4,8 @@ import pytest
 
 from cleartake import drift
 
+from .conftest import DEMO
+
 pytestmark = pytest.mark.e2e
 
 
@@ -60,6 +62,31 @@ def test_demo_mode_without_server(page, demo_url):
     assert page.is_visible("#demo-banner")
     assert "Drop" not in page.inner_text("#intro")
     assert page.locator("#transcript span").count() > 30
+    assert page.errors == []
+
+
+def test_demo_page_makes_no_failed_requests(page, demo_url):
+    failed = []
+    page.on("response", lambda r: failed.append((r.status, r.url)) if r.status >= 400 else None)
+    page.goto(demo_url + "?sample")
+    page.wait_for_selector("#result:not([hidden])", timeout=30000)
+    assert failed == []
+
+
+def test_changes_sample_shows_marked_words_and_the_picture_has_a_name(page, demo_url):
+    page.goto(demo_url)
+    page.wait_for_selector("html[data-ready]")
+    page.click("#sample-changes")
+    page.wait_for_selector("#result:not([hidden])", timeout=30000)
+    report = json.loads((DEMO / "changes" / "report.json").read_text())
+    assert page.locator("#transcript .changed, #transcript .dropped, #transcript .added").count() >= 1
+    assert page.inner_text("#drift-chip") != "No word changed"
+    assert report["drift"]["changes"]
+    assert page.get_attribute("#dl-report", "href") == "demo/changes/report.json"
+    assert (
+        page.get_attribute("#stage", "aria-label")
+        == "Spectrogram of the recording. Arrow keys move the playhead."
+    )
     assert page.errors == []
 
 

@@ -1,10 +1,13 @@
 """Rebuild docs/demo, the pre-rendered sample behind the hosted demo.
 
-The input is five consecutive VoiceBank-DEMAND test clips of one speaker (p232), joined with 0.35 s of
-silence between them. Nothing is added to the recordings. VoiceBank-DEMAND is CC BY 4.0, see
-https://doi.org/10.7488/ds/2117
+Two samples, each made of VoiceBank-DEMAND test clips of one speaker joined with 0.35 s of silence between
+them. Nothing is added to the recordings. VoiceBank-DEMAND is CC BY 4.0, see https://doi.org/10.7488/ds/2117
 
-Usage: python tools/build_demo.py [work_dir]    (writes docs/demo/*.mp3 and report.json)
+* docs/demo: five consecutive clips of p232, where the word check finds nothing.
+* docs/demo/changes: five clips of p257 picked from the ones where the word check fired, so the page shows
+  what a flagged word looks like. The differences listed are whatever the check reported.
+
+Usage: python tools/build_demo.py [main|changes] [work_dir]    (writes the .mp3 files and report.json)
 """
 
 from __future__ import annotations
@@ -24,11 +27,18 @@ from huggingface_hub import hf_hub_download
 from cleartake import pipeline
 
 ROOT = Path(__file__).resolve().parents[1]
-CLIPS = ("p232_003", "p232_005", "p232_006", "p232_007", "p232_009")
+SAMPLES = {
+    "main": ("docs/demo", ("p232_003", "p232_005", "p232_006", "p232_007", "p232_009")),
+    "changes": ("docs/demo/changes", ("p257_050", "p257_251", "p257_171", "p257_291", "p257_331")),
+}
 
 
 def main() -> None:
-    work = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(tempfile.mkdtemp(prefix="cleartake-demo-"))
+    name = sys.argv[1] if len(sys.argv) > 1 else "main"
+    target, clips = SAMPLES[name]
+    out_dir = ROOT / target
+    out_dir.mkdir(parents=True, exist_ok=True)
+    work = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(tempfile.mkdtemp(prefix="cleartake-demo-"))
     work.mkdir(parents=True, exist_ok=True)
     path = hf_hub_download(
         "JacobLinCool/VoiceBank-DEMAND-16k", "data/test-00000-of-00001.parquet", repo_type="dataset"
@@ -36,7 +46,7 @@ def main() -> None:
     rows = {r["id"]: r for r in pq.read_table(path).to_pylist()}
     gap = np.zeros(int(0.35 * 16_000), dtype="float32")
     parts = []
-    for clip in CLIPS:
+    for clip in clips:
         audio, rate = sf.read(io.BytesIO(rows[clip]["noisy"]["bytes"]), dtype="float32")
         assert rate == 16_000
         parts += [audio, gap]
@@ -57,13 +67,13 @@ def main() -> None:
                 str(previews / f"{name}.wav"),
                 "-b:a",
                 "96k",
-                str(ROOT / "docs/demo" / f"{name}.mp3"),
+                str(out_dir / f"{name}.mp3"),
             ],
             check=True,
         )
     slim = json.loads(json.dumps(report))
     slim["input"]["file"] = "sample.wav"
-    (ROOT / "docs/demo/report.json").write_text(json.dumps(slim, indent=2) + "\n", encoding="utf-8")
+    (out_dir / "report.json").write_text(json.dumps(slim, indent=2) + "\n", encoding="utf-8")
     print(sample, report["loudness"], report["drift"]["difference_rate"])
 
 

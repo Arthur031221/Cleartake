@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+* The hosted demo has a second sample, five clips picked from the ones where the word check fired, so the page shows a flagged word and not only a clean result. `?sample=changes` opens it
+* The hosted demo no longer logs a 404 for `/api/health` on load, because the Pages build marks the page as the demo
+* The spectrogram has an accessible name in all nine languages
+
 ## 0.2.1
 
 * `cleartake doctor` reported every model as not downloaded because it looked in the wrong folder. It now checks the two engines and both Whisper models the word check uses
