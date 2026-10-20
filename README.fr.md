@@ -110,7 +110,7 @@ Autres durées : une vidéo de 76 secondes a pris 6,6 secondes de bout en bout s
 * **La cible de loudness peut être manquée d'environ 0,5 LU** quand le plafond de crête vraie arrête le gain en premier.
 * **Les scores de qualité sont prédits.** DNSMOS est un modèle appris, pas un test d'écoute, et je n'ai essayé que de la parole anglaise avec les types de bruit de DEMAND. La musique, la réverbération et les autres langues ne sont pas mesurées.
 * **Seul Linux a été testé** (une RTX 5090 et 3 cœurs de CPU, Python 3.10 et 3.12). macOS et Windows devraient fonctionner et je ne les ai pas essayés. Il n'y a pas encore d'image Docker.
-* **L'appli web ne vérifie qu'en anglais.** Elle utilise toujours Whisper `base.en`. Pour les autres langues, lancez la CLI avec `--whisper small --language de`.
+* **La vérification des mots de l'appli web dans d'autres langues n'est pas testée.** L'anglais utilise Whisper `base.en`. Toute autre langue choisie dans la carte de réglages, ou la détection automatique, utilise Whisper `small` (environ 460 Mo, téléchargé une fois). Je n'ai pas mesuré sa précision par langue.
 * **Le mode par lot demande des noms distincts.** `-o` conserve l'arborescence, et Cleartake refuse de démarrer si deux entrées écrivaient le même fichier ou si un résultat remplaçait son entrée.
 * **C'est un téléchargement de plusieurs gigaoctets** à cause de PyTorch, et la première exécution a besoin du réseau pour les modèles.
 

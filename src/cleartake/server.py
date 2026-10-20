@@ -266,13 +266,17 @@ def create_app(
         strength: float = Form(1.0),
         preset: str = Form("podcast"),
         check: bool = Form(True),
-        language: str = Form(""),
+        language: str = Form("en"),
     ) -> JSONResponse:
         suffix = Path(file.filename or "").suffix.lower()
         if suffix not in ALLOWED_SUFFIXES:
             raise HTTPException(415, f"unsupported file type {suffix or '(none)'}")
+        language = language or "en"
+        if language not in pipeline.CHECK_LANGUAGES:
+            raise HTTPException(422, f"unknown language {language!r}")
+        whisper, code = pipeline.check_model(language)
         options = pipeline.Options(
-            engine=engine, strength=strength, preset=preset, check=check, language=language or None
+            engine=engine, strength=strength, preset=preset, check=check, whisper=whisper, language=code
         )
         try:
             options.validate()

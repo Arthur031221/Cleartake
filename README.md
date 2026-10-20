@@ -194,8 +194,7 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
   the DEMAND noise types. Music, reverb and other languages aren't measured.
 * **Only Linux was tested** (an RTX 5090 and 3 CPU cores, Python 3.10 and 3.12). macOS and Windows should work but I
   haven't run them. There's no Docker image yet.
-* **The web app checks English only.** It always uses Whisper `base.en`. For other languages run the CLI with
-  `--whisper small --language de`.
+* **The web app's word check in other languages is untested.** English uses Whisper `base.en`. Any other language you pick in the setup card, or Detect automatically, uses Whisper `small` (about 460 MB, downloaded once). I haven't measured its accuracy per language.
 * **Batch mode needs distinct names.** `-o` keeps the folder layout of a folder input, and Cleartake refuses to start
   when two inputs would write the same file or when a result would replace its input.
 * **It's a download of several gigabytes** because of PyTorch, and the first run needs the network for the models.
@@ -204,7 +203,7 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
 
 ```bash
 uv pip install -e ".[dev]" && playwright install chromium
-pytest                 # 75 tests, includes browser tests of the web app
+pytest                 # 82 tests, includes browser tests of the web app
 pytest -m model        # 2 more that load the real models
 ruff check . && ruff format --check .
 ```

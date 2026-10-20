@@ -1,4 +1,4 @@
-import { LANGUAGES, pickLanguage, setLanguage, t } from "./i18n.js";
+import { LANGUAGES, apply, pickLanguage, setLanguage, t } from "./i18n.js";
 import { ABPlayer } from "./player.js";
 import { drawSpectrogram, drawWaveform } from "./spectro.js";
 
@@ -45,6 +45,8 @@ function toggleTheme() {
 
 function enterDemo() {
   $("demo-banner").hidden = false;
+  document.querySelector("#intro p").dataset.i18n = "demo.sub";
+  apply();
   document.querySelector(".drop").hidden = true;
   document.querySelector(".options").hidden = true;
   $("go").hidden = true;
@@ -74,6 +76,7 @@ function bindSetup() {
     drop.classList.toggle("has-file", state.files.length > 0);
     $("go").disabled = !state.files.length;
   };
+  $("check").addEventListener("change", () => { $("check-language").disabled = !$("check").checked; });
   input.addEventListener("change", () => choose(input.files));
   drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
   for (const name of ["dragenter", "dragover"]) drop.addEventListener(name, (e) => { e.preventDefault(); drop.classList.add("over"); });
@@ -133,6 +136,7 @@ function submit() {
     strength: String($("strength").value / 100),
     preset: $("preset").value,
     check: String($("check").checked),
+    language: $("check-language").value,
   };
   state.jobs = state.files.map((file) => ({ file, id: null, status: "pending", pct: 0, stage: "", position: 0, error: "", report: null }));
   $("go").disabled = true;

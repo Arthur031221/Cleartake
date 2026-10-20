@@ -2,6 +2,8 @@ import json
 
 import pytest
 
+from cleartake import drift
+
 pytestmark = pytest.mark.e2e
 
 
@@ -15,6 +17,28 @@ def test_upload_enhance_and_download(page, app_url, wav_file):
     with page.expect_download() as download:
         page.click("#dl-audio")
     assert download.value.suggested_filename.endswith(".cleartake.wav")
+    assert page.errors == []
+
+
+def test_spoken_language_reaches_the_word_check_and_follows_the_check_switch(
+    page, app_url, wav_file, monkeypatch
+):
+    page.goto(app_url)
+    seen = []
+    monkeypatch.setattr(
+        drift,
+        "transcribe",
+        lambda audio, model="base.en", language=None: seen.append((model, language)) or [],
+    )
+    assert page.input_value("#check-language") == "en"
+    page.select_option("#check-language", "de")
+    page.set_input_files("#file", str(wav_file))
+    page.click("#go")
+    page.wait_for_selector("#result:not([hidden])", timeout=60000)
+    assert set(seen) == {("small", "de")}
+    page.click("#again")
+    page.click("label.switch:has(#check)")
+    assert page.is_disabled("#check-language")
     assert page.errors == []
 
 
@@ -34,6 +58,7 @@ def test_demo_mode_without_server(page, demo_url):
     page.goto(demo_url + "?sample")
     page.wait_for_selector("#result:not([hidden])", timeout=30000)
     assert page.is_visible("#demo-banner")
+    assert "Drop" not in page.inner_text("#intro")
     assert page.locator("#transcript span").count() > 30
     assert page.errors == []
 

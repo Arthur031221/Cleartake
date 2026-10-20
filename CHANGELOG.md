@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+* The web app has a Spoken language menu for the word check: English, 18 other languages or automatic detection. English keeps `base.en` and everything else uses the multilingual Whisper `small`. The server refuses a language it does not offer
+* The hosted demo no longer tells you to drop a file when it can only play the sample, and its card has no blank band above the button
+
 ## 0.1.0
 
 First release.

@@ -110,7 +110,7 @@ Weitere Zeiten: Ein Video von 76 Sekunden brauchte ohne Wortprüfung 6,6 Sekunde
 * **Das Lautheitsziel kann um etwa 0,5 LU verfehlt werden,** wenn die True-Peak-Obergrenze die Verstärkung zuerst stoppt.
 * **Qualitätswerte sind Vorhersagen.** DNSMOS ist ein gelerntes Modell und kein Hörtest, und ich habe nur englische Sprache mit den DEMAND-Rauscharten geprüft. Musik, Nachhall und andere Sprachen sind nicht gemessen.
 * **Getestet wurde nur unter Linux** (eine RTX 5090 und 3 CPU-Kerne, Python 3.10 und 3.12). macOS und Windows sollten funktionieren, ich habe sie nicht ausgeführt. Ein Docker-Image gibt es noch nicht.
-* **Die Web-App prüft nur Englisch.** Sie nutzt immer Whisper `base.en`. Für andere Sprachen starten Sie die CLI mit `--whisper small --language de`.
+* **Die Wortprüfung der Web-App in anderen Sprachen ist ungetestet.** Englisch nutzt Whisper `base.en`. Jede andere Sprache, die Sie in der Einrichtungskarte wählen, oder die automatische Erkennung nutzt Whisper `small` (etwa 460 MB, einmal heruntergeladen). Die Genauigkeit pro Sprache habe ich nicht gemessen.
 * **Der Stapelbetrieb braucht verschiedene Namen.** `-o` behält die Ordnerstruktur, und Cleartake startet nicht, wenn zwei Eingaben dieselbe Datei schreiben würden oder ein Ergebnis seine Eingabe ersetzen würde.
 * **Es ist ein Download von mehreren Gigabyte** wegen PyTorch, und der erste Lauf braucht Netz für die Modelle.
 

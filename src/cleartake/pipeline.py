@@ -15,6 +15,19 @@ STAGES = ("decode", "enhance", "finish", "check", "write")
 VIDEO_SUFFIXES = {".mp4", ".mov", ".mkv"}
 
 
+# Spoken languages the web app offers for the word check. English keeps the small English only model.
+# Every other choice, including "auto", needs a multilingual one.
+CHECK_LANGUAGES = frozenset("en auto zh ja ko es fr de pt it ru nl pl tr ar hi uk sv id vi".split())
+ENGLISH_MODEL, MULTILINGUAL_MODEL = "base.en", "small"
+
+
+def check_model(language: str) -> tuple[str, str | None]:
+    """The Whisper model and language code for a choice from CHECK_LANGUAGES."""
+    if language == "en":
+        return ENGLISH_MODEL, "en"
+    return MULTILINGUAL_MODEL, None if language == "auto" else language
+
+
 @dataclass(frozen=True)
 class Options:
     engine: str = "studio"

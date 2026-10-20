@@ -1,9 +1,11 @@
+import re
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-from cleartake import drift
+from cleartake import drift, pipeline, server
 from cleartake.server import create_app
 
 
@@ -28,6 +30,48 @@ def wait(client, job_id):
 def test_health_lists_both_engines(client):
     data = client.get("/api/health").json()
     assert {e["id"] for e in data["engines"]} == {"classic", "studio"} and data["ffmpeg"]
+
+
+def post_with_language(client, wav_file, monkeypatch, **data):
+    seen = []
+
+    def transcribe(audio, model_name="base.en", language=None):
+        seen.append((model_name, language))
+        return [drift.Word("hi", 0, 0.3)]
+
+    monkeypatch.setattr(drift, "transcribe", transcribe)
+    with wav_file.open("rb") as handle:
+        response = client.post("/api/jobs", files={"file": ("talk.wav", handle, "audio/wav")}, data=data)
+    if response.status_code == 202:
+        job = wait(client, response.json()["id"])
+        assert job["state"] == "done", job
+    return response, seen
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        (None, ("base.en", "en")),
+        ("en", ("base.en", "en")),
+        ("de", ("small", "de")),
+        ("auto", ("small", None)),
+    ],
+)
+def test_word_check_model_follows_the_spoken_language(client, wav_file, monkeypatch, language, expected):
+    data = {"check": "true", **({"language": language} if language else {})}
+    response, seen = post_with_language(client, wav_file, monkeypatch, **data)
+    assert response.status_code == 202 and seen and set(seen) == {expected}
+
+
+def test_unknown_spoken_language_is_refused(client, wav_file, monkeypatch):
+    response, seen = post_with_language(client, wav_file, monkeypatch, check="true", language="../../etc")
+    assert response.status_code == 422 and not seen
+
+
+def test_language_menu_in_the_page_matches_what_the_server_accepts():
+    page = (Path(server.__file__).parent / "web" / "index.html").read_text(encoding="utf-8")
+    menu = re.search(r'<select id="check-language">(.*?)</select>', page, re.S).group(1)
+    assert set(re.findall(r'value="([^"]+)"', menu)) == pipeline.CHECK_LANGUAGES
 
 
 def test_upload_to_download(client, wav_file):
@@ -97,8 +141,6 @@ def test_oversize_body_is_refused_before_it_is_stored(client, tmp_path):
 
 
 def test_old_jobs_are_removed(client, wav_file, monkeypatch):
-    from cleartake import server
-
     monkeypatch.setattr(server, "KEEP_FINISHED_JOBS", 2)
     monkeypatch.setattr(server, "OPEN_RESULT_SECONDS", 0)
     ids = []
@@ -163,8 +205,6 @@ def test_deleting_a_finished_job_removes_it(client, wav_file):
 
 
 def test_a_job_the_page_just_polled_is_not_pruned(client, wav_file, monkeypatch):
-    from cleartake import server
-
     monkeypatch.setattr(server, "KEEP_FINISHED_JOBS", 1)
     ids = [submit(client, wav_file) for _ in range(3)]
     for job in ids:

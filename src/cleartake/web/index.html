@@ -72,6 +72,30 @@
         <div class="field">
           <label class="switch"><input id="check" type="checkbox" checked><span class="track"></span><span data-i18n="opt.check">Word drift check</span></label>
           <small class="hint" data-i18n="opt.check.hint">Transcribes before and after and lists any word that changed.</small>
+          <label class="sub-label" for="check-language" data-i18n="opt.language">Spoken language</label>
+          <select id="check-language">
+            <option value="en">English</option>
+            <option value="auto" data-i18n="opt.language.auto">Detect automatically</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="pt">Português</option>
+            <option value="it">Italiano</option>
+            <option value="ru">Русский</option>
+            <option value="nl">Nederlands</option>
+            <option value="pl">Polski</option>
+            <option value="tr">Türkçe</option>
+            <option value="ar">العربية</option>
+            <option value="hi">हिन्दी</option>
+            <option value="uk">Українська</option>
+            <option value="sv">Svenska</option>
+            <option value="id">Bahasa Indonesia</option>
+            <option value="vi">Tiếng Việt</option>
+          </select>
+          <small class="hint" data-i18n="opt.language.hint"></small>
         </div>
       </div>
       <div class="actions">

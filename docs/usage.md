@@ -64,7 +64,7 @@ switch, Space to play, drag on the picture to loop a part), the spectrogram of b
 numbers and the transcript with changed words marked. Click a word to hear it, or tab to it and press Enter. With the picture focused, the arrow keys seek by 5 seconds.
 
 The server listens on 127.0.0.1 only unless you pass `--host`. It has no login, so do not expose it to a network
-you do not trust. It refuses requests whose Host header is not this machine and browser requests from another origin, and it stops an upload that passes `--max-upload-mb` while the body is still arriving. It keeps the newest 12 finished jobs and deletes older ones, except a job the page asked about in the last five minutes. The word check in the web app always uses the English model `base.en`, so use the CLI with `--whisper small --language de` for other languages.
+you do not trust. It refuses requests whose Host header is not this machine and browser requests from another origin, and it stops an upload that passes `--max-upload-mb` while the body is still arriving. It keeps the newest 12 finished jobs and deletes older ones, except a job the page asked about in the last five minutes. The setup card has a Spoken language menu for the word check. English uses `base.en`. Any other language, or Detect automatically, uses the multilingual `small` model, which is about 460 MB and downloads on first use. The CLI takes any model and language with `--whisper` and `--language`.
 
 ## Check the setup
 
