@@ -86,3 +86,101 @@ def test_switches_render_a_track(page, app_url):
     page.goto(app_url)
     width = page.evaluate("document.querySelector('label.switch .track').getBoundingClientRect().width")
     assert width >= 30
+
+
+def test_several_files_run_as_a_list_and_each_can_be_reviewed(page, app_url, wav_file, tmp_path):
+    second = tmp_path / "second.wav"
+    second.write_bytes(wav_file.read_bytes())
+    page.goto(app_url)
+    page.set_input_files("#file", [str(wav_file), str(second)])
+    assert "2" in page.inner_text("#file-name")
+    page.click("#go")
+    page.wait_for_selector("#files li[data-status=done] >> nth=1", timeout=60000)
+    assert page.locator("#files li").count() == 2
+    assert page.is_hidden("#result")
+    page.locator("#files button[data-act=review]").nth(1).click()
+    page.wait_for_selector("#result:not([hidden])", timeout=30000)
+    assert page.is_hidden("#again") and page.is_visible("#back")
+    page.click("#back")
+    assert page.is_visible("#files") and page.is_hidden("#result")
+    assert page.locator("#files a[download]").count() == 2
+    assert page.errors == []
+
+
+def test_cancel_a_waiting_file_and_a_running_one(page, held_app_url, gate, wav_file, tmp_path):
+    second = tmp_path / "second.wav"
+    second.write_bytes(wav_file.read_bytes())
+    page.goto(held_app_url)
+    page.set_input_files("#file", [str(wav_file), str(second)])
+    page.click("#go")
+    page.wait_for_selector("#files li[data-status=queued]", timeout=30000)
+    assert gate.entered.wait(10)
+    page.locator("#files button[data-act=cancel]").nth(1).click()
+    page.wait_for_selector("#files li[data-status=cancelled]", timeout=10000)
+    page.locator("#files button[data-act=cancel]").first.click()
+    page.wait_for_selector("#files li[data-status=cancelling]", timeout=10000)
+    gate.release.set()
+    page.wait_for_function(
+        "document.querySelectorAll('#files li[data-status=cancelled]').length === 2", timeout=30000
+    )
+    assert page.is_visible("#retry")
+    assert page.errors == []
+
+
+def test_single_file_can_be_cancelled_while_it_waits(page, held_app_url, gate, wav_file):
+    page.goto(held_app_url)
+    page.set_input_files("#file", str(wav_file))
+    page.click("#go")
+    assert gate.entered.wait(10)
+    page.click("#cancel")
+    gate.release.set()
+    page.wait_for_function("document.getElementById('retry').hidden === false", timeout=30000)
+    assert page.is_hidden("#cancel") and page.is_hidden("#result")
+    page.click("#retry")
+    assert page.is_visible("#setup")
+
+
+def test_a_pruned_job_shows_an_error_instead_of_hanging(page, app_url, wav_file):
+    page.route(
+        "**/api/jobs/*",
+        lambda route: (
+            route.fulfill(status=404, body="{}")
+            if route.request.method == "GET" and route.request.url.count("/") == 5
+            else route.continue_()
+        ),
+    )
+    page.goto(app_url)
+    page.set_input_files("#file", str(wav_file))
+    page.click("#go")
+    page.wait_for_selector("#error:not([hidden])", timeout=15000)
+    assert "no longer" in page.inner_text("#error")
+    assert page.is_visible("#retry")
+
+
+def test_keys_do_not_leak_out_of_form_fields_and_words_are_reachable(page, demo_url):
+    page.goto(demo_url + "?sample")
+    page.wait_for_selector("#result:not([hidden])", timeout=30000)
+    assert page.get_attribute("#ab-b", "aria-pressed") == "true"
+    page.focus("#lang")
+    page.keyboard.press("b")
+    assert page.get_attribute("#ab-b", "aria-pressed") == "true"
+    page.focus("#stage")
+    page.keyboard.press("b")
+    assert page.get_attribute("#ab-a", "aria-pressed") == "true"
+    page.select_option("#lang", "de")
+    page.wait_for_function("document.getElementById('play').getAttribute('aria-label') === 'Wiedergabe'")
+    word = page.locator("#transcript span").first
+    assert word.get_attribute("role") == "button" and word.get_attribute("tabindex") == "0"
+    word.focus()
+    page.keyboard.press("Enter")
+    page.wait_for_function("document.getElementById('play').getAttribute('aria-label') === 'Pause'")
+
+
+def test_arrow_keys_seek_when_the_picture_has_focus(page, demo_url):
+    page.goto(demo_url + "?sample")
+    page.wait_for_selector("#result:not([hidden])", timeout=30000)
+    page.focus("#stage")
+    page.keyboard.press("ArrowRight")
+    page.wait_for_function("document.getElementById('time').textContent.startsWith('0:05')")
+    page.keyboard.press("ArrowLeft")
+    page.wait_for_function("document.getElementById('time').textContent.startsWith('0:00')")

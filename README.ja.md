@@ -18,14 +18,19 @@
   <a href="README.md">English</a> | <a href="README.zh-TW.md">繁體中文</a> | <a href="README.zh-CN.md">简体中文</a> | 日本語 | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.de.md">Deutsch</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
-VoiceBank-DEMAND のテスト音声 103 本で、DNSMOS の背景スコアは **2.98 から 4.08**、総合スコアは **2.59 から 3.14** に上がりました。studio エンジン、強調処理だけで RTX 5090 1 枚あたりリアルタイムの 13.8 倍です。<br>
-<sub>方法：テスト用の 824 発話から 8 本ごとに 1 本を選び、強度 1.0、ラウドネス調整なし、DNSMOS P.835 を `speechmos` で計算、GPU はウォームアップ済みです。この程度の軽いノイズでは単語誤り率は改善しませんでした。完全な表と注意点は [benchmarks/README.md](benchmarks/README.md)（英語）にあります。</sub>
-
 <p align="center">
   <img src="assets/demo.gif" alt="Cleartake の Web 画面：ファイルを置き、前後を聴き比べ、単語チェックを見る" width="860">
 </p>
 
 内容は良いのに、ヒスノイズやファンの音や部屋の響きが残る録音のために Cleartake を作りました。音声強調モデルをお使いのマシン上で動かし、ラウドネスを放送向けの目標に合わせ、動画の映像はバイト単位でそのまま保ち、元の音声と結果を文字起こしして、変わった単語を示します。何もアップロードしません。
+
+```bash
+uv tool install git+https://github.com/Arthur031221/Cleartake
+cleartake serve --open
+```
+
+VoiceBank-DEMAND のテスト音声 103 本で、DNSMOS の背景スコアは **2.98 から 4.08**、総合スコアは **2.59 から 3.14** に上がりました。studio エンジン、強調処理だけで RTX 5090 1 枚あたりリアルタイムの 13.8 倍です。<br>
+<sub>方法：テスト用の 824 発話から 8 本ごとに 1 本を選び、強度 1.0、ラウドネス調整なし、DNSMOS P.835 を `speechmos` で計算、GPU はウォームアップ済みです。この程度の軽いノイズでは単語誤り率は改善しませんでした。完全な表と注意点は [benchmarks/README.md](benchmarks/README.md)（英語）にあります。</sub>
 
 ## 処理の前と後
 
@@ -62,7 +67,7 @@ VoiceBank-DEMAND のテスト音声 103 本で、DNSMOS の背景スコアは **
 | 配信先の目標に合わせる | `cleartake talk.wav --preset youtube` | 先にゲイン、次にリミッター。レポートには実測値が出ます |
 | 単語チェックを省く | `cleartake talk.wav --no-check` | チェックには Whisper の実行が 1 回必要なので、切れます |
 | 他の言語で監査する | `cleartake talk.wav --language de --whisper small` | その言語を読めるモデルを使います |
-| ブラウザで使う | `cleartake serve --open` | A/B プレーヤー、スペクトログラム、単語リスト付きのローカル Web アプリ |
+| ブラウザで使う | `cleartake serve --open` | 複数ファイルをまとめてドロップでき、どれでもキャンセルできるローカル Web アプリ。A/B プレーヤー、スペクトログラム、単語リスト付き |
 | スクリプトから使う | `cleartake in.wav --json` | レポートは stdout、進捗は stderr に出ます |
 | 環境を確認する | `cleartake doctor` | ダウンロードを待つ前に ffmpeg、デバイス、取得済みモデルを表示します |
 

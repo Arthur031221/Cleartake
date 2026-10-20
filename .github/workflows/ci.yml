@@ -42,7 +42,9 @@ jobs:
       - name: Tests
         run: .venv/bin/python -m pytest -q
       - name: Build the wheel
-        run: uv build --wheel
+        run: |
+          uv build --wheel
+          .venv/bin/python tools/check_wheel.py dist/*.whl
 
   real-models:
     if: github.event_name == 'workflow_dispatch' && inputs.real_models

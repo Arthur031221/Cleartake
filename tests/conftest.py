@@ -1,4 +1,5 @@
 import subprocess
+import threading
 
 import numpy as np
 import pytest
@@ -13,6 +14,20 @@ class FakeEngine(engines.Engine):
     info = engines.EngineInfo("fake", "FAKE_MODEL", SAMPLE_RATE, "test engine")
 
     def enhance(self, audio):
+        return audio * 0.5
+
+
+class Gate(engines.Engine):
+    """Wraps the fake engine and waits for the test, so a job can be held in the running state."""
+
+    info = FakeEngine.info
+
+    def __init__(self):
+        self.entered, self.release = threading.Event(), threading.Event()
+
+    def enhance(self, audio):
+        self.entered.set()
+        self.release.wait(15)
         return audio * 0.5
 
 
@@ -72,3 +87,10 @@ def mp4_file(tmp_path):
 @pytest.fixture
 def fake_engine():
     return FakeEngine()
+
+
+@pytest.fixture
+def gate():
+    gate = Gate()
+    yield gate
+    gate.release.set()

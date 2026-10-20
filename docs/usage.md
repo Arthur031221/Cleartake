@@ -59,12 +59,12 @@ count as the same word. Read the list as a place to listen, not as a verdict.
 cleartake serve --open
 ```
 
-Drop a file, pick an engine and a preset, press Enhance. The result page has an A and B player (press B to
+Drop one or more files, pick an engine and a preset, press Enhance. Each file shows its upload progress and its place in the queue, and the cross on its row cancels it. A running file stops at the end of its current step, because a model call cannot be interrupted. With several files the list stays on screen and Review opens any finished one, with a Download link beside it. The result page has an A and B player (press B to
 switch, Space to play, drag on the picture to loop a part), the spectrogram of both versions, the loudness
-numbers and the transcript with changed words marked. Click a word to hear it.
+numbers and the transcript with changed words marked. Click a word to hear it, or tab to it and press Enter. With the picture focused, the arrow keys seek by 5 seconds.
 
 The server listens on 127.0.0.1 only unless you pass `--host`. It has no login, so do not expose it to a network
-you do not trust. It refuses requests whose Host header is not this machine and browser requests from another origin, and it stops an upload that passes `--max-upload-mb` while the body is still arriving. It keeps the newest 12 finished jobs and deletes older ones. The word check in the web app always uses the English model `base.en`, so use the CLI with `--whisper small --language de` for other languages.
+you do not trust. It refuses requests whose Host header is not this machine and browser requests from another origin, and it stops an upload that passes `--max-upload-mb` while the body is still arriving. It keeps the newest 12 finished jobs and deletes older ones, except a job the page asked about in the last five minutes. The word check in the web app always uses the English model `base.en`, so use the CLI with `--whisper small --language de` for other languages.
 
 ## Check the setup
 

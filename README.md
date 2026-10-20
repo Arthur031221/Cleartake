@@ -18,12 +18,6 @@
   English | <a href="README.zh-TW.md">zh-TW</a> | <a href="README.zh-CN.md">zh-CN</a> | <a href="README.ja.md">ja</a> | <a href="README.ko.md">ko</a> | <a href="README.es.md">es</a> | <a href="README.fr.md">fr</a> | <a href="README.de.md">de</a> | <a href="README.pt-BR.md">pt-BR</a>
 </p>
 
-DNSMOS background score **2.98 to 4.08** and overall **2.59 to 3.14** on 103 VoiceBank-DEMAND test clips, with the
-studio engine, enhancement stage alone at 13.8x realtime on one RTX 5090.<br>
-<sub>Method: every 8th clip of the 824 test utterances, strength 1.0, no loudness step, DNSMOS P.835 through
-`speechmos`, GPU warm. Word error did not improve on this mild noise. The full table and its caveats are in
-[benchmarks/README.md](benchmarks/README.md).</sub>
-
 <p align="center">
   <img src="assets/demo.gif" alt="Cleartake web app: drop a file, listen to before and after, see the word check" width="860">
 </p>
@@ -31,6 +25,17 @@ studio engine, enhancement stage alone at 13.8x realtime on one RTX 5090.<br>
 I built Cleartake for recordings that are good except for the hiss, the fan and the room. It runs a speech
 enhancement model on your machine, sets the loudness to a broadcast target and keeps the video picture byte for byte.
 Then it transcribes the original and the result and shows you any word that changed. Nothing is uploaded.
+
+```bash
+uv tool install git+https://github.com/Arthur031221/Cleartake
+cleartake serve --open
+```
+
+DNSMOS background score **2.98 to 4.08** and overall **2.59 to 3.14** on 103 VoiceBank-DEMAND test clips, with the
+studio engine, enhancement stage alone at 13.8x realtime on one RTX 5090.<br>
+<sub>Method: every 8th clip of the 824 test utterances, strength 1.0, no loudness step, DNSMOS P.835 through
+`speechmos`, GPU warm. Word error did not improve on this mild noise. The full table and its caveats are in
+[benchmarks/README.md](benchmarks/README.md).</sub>
 
 ## Before and after
 
@@ -46,7 +51,7 @@ files in [docs/demo](docs/demo).
 | True peak | -4.3 dBTP | -1.6 dBTP | ceiling is -1.5 |
 | Words that changed | | 0 of 81 | Whisper `base.en`, aligned word by word |
 
-A denoiser doesn't fix speech, and I don't pretend it does. Cleartake removes noise and then audits the result, so a changed word shows up
+A denoiser doesn't fix speech, and I don't pretend it does. Cleartake removes noise, then audits the result, so a changed word shows up
 as a line in a report instead of a surprise on air. [Try it in the browser](https://arthur031221.github.io/Cleartake/).
 The hosted page plays this same clip and runs nothing.
 
@@ -70,7 +75,7 @@ The hosted page plays this same clip and runs nothing.
 | Hit a platform target | `cleartake talk.wav --preset youtube` | Gain first, limiter second, and the report shows what was measured |
 | Skip the word check | `cleartake talk.wav --no-check` | The check costs a Whisper pass, so you can turn it off |
 | Audit in another language | `cleartake talk.wav --language de --whisper small` | Use a model that can read what was said |
-| Work in a browser | `cleartake serve --open` | A local web app with an A/B player, a spectrogram and the word list |
+| Work in a browser | `cleartake serve --open` | A local web app: drop several files, cancel any of them, then compare with an A/B player, a spectrogram and the word list |
 | Script it | `cleartake in.wav --json` | The report goes to stdout and progress goes to stderr |
 | Check the setup | `cleartake doctor` | Prints ffmpeg, the device and which models are downloaded before you wait on a download |
 
@@ -199,12 +204,12 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
 
 ```bash
 uv pip install -e ".[dev]" && playwright install chromium
-pytest                 # 64 tests, includes browser tests of the web app
+pytest                 # 75 tests, includes browser tests of the web app
 pytest -m model        # 2 more that load the real models
 ruff check . && ruff format --check .
 ```
 
-The browser tests upload a file, wait for the result, toggle A/B, switch language and theme, and tamper with a report
+The browser tests upload one file and several, cancel a waiting and a running job, toggle A/B, drive the player from the keyboard, switch language and theme, and tamper with a report
 to check that changed words are marked. More in [docs/architecture.md](docs/architecture.md).
 
 ## Docs

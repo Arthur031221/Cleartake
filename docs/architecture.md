@@ -47,7 +47,8 @@ body bytes as they arrive so an oversized upload is refused before it fills the 
 newest 12 are deleted.
 
 **One worker.** The models are large and a GPU does not gain from two jobs at once, so `server.py` keeps one
-thread and a queue. The page shows the queue position.
+thread and a queue. The page shows the queue position. Cancel sets a flag that `on_stage` turns into a `Cancelled`
+exception at the next stage boundary, so the unwinding goes through the same path as any other failure.
 
 **No build step in the UI.** `web/` is HTML, CSS and ES modules served as they are. The same files are copied to
 GitHub Pages. When `/api/health` does not answer, `app.js` switches to demo mode and loads

@@ -18,14 +18,19 @@
   <a href="README.md">English</a> | <a href="README.zh-TW.md">繁體中文</a> | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.de.md">Deutsch</a> | Português (BR)
 </p>
 
-A nota DNSMOS de fundo sobe de **2,98 para 4,08** e a geral de **2,59 para 3,14** em 103 clipes de teste do VoiceBank-DEMAND, com o motor studio e só a etapa de melhoria, a 13,8 vezes o tempo real em uma RTX 5090.<br>
-<sub>Método: um a cada 8 dos 824 enunciados de teste, intensidade 1,0, sem etapa de loudness, DNSMOS P.835 via `speechmos`, GPU já aquecida. A taxa de erro de palavras não melhorou com esse ruído leve. A tabela completa e suas ressalvas estão em [benchmarks/README.md](benchmarks/README.md) (em inglês).</sub>
-
 <p align="center">
   <img src="assets/demo.gif" alt="Interface web do Cleartake: solte um arquivo, ouça antes e depois, veja a verificação de palavras" width="860">
 </p>
 
 Fiz o Cleartake para aquela gravação que é boa, exceto pelo chiado, pelo ventilador e pela sala. Ele roda um modelo de melhoria de fala na sua máquina, ajusta o loudness para uma meta de transmissão, mantém a imagem do vídeo byte a byte e depois transcreve o original e o resultado para mostrar qualquer palavra que mudou. Nada é enviado.
+
+```bash
+uv tool install git+https://github.com/Arthur031221/Cleartake
+cleartake serve --open
+```
+
+A nota DNSMOS de fundo sobe de **2,98 para 4,08** e a geral de **2,59 para 3,14** em 103 clipes de teste do VoiceBank-DEMAND, com o motor studio e só a etapa de melhoria, a 13,8 vezes o tempo real em uma RTX 5090.<br>
+<sub>Método: um a cada 8 dos 824 enunciados de teste, intensidade 1,0, sem etapa de loudness, DNSMOS P.835 via `speechmos`, GPU já aquecida. A taxa de erro de palavras não melhorou com esse ruído leve. A tabela completa e suas ressalvas estão em [benchmarks/README.md](benchmarks/README.md) (em inglês).</sub>
 
 ## Antes e depois
 
@@ -62,7 +67,7 @@ Não digo que um redutor de ruído conserta a fala. O Cleartake remove o ruído 
 | Atingir a meta de uma plataforma | `cleartake talk.wav --preset youtube` | Primeiro ganho, depois limitador, e o relatório mostra o valor medido |
 | Pular a verificação de palavras | `cleartake talk.wav --no-check` | A verificação custa uma passada do Whisper, então dá para desligar |
 | Auditar em outro idioma | `cleartake talk.wav --language de --whisper small` | Use um modelo que saiba ler o que foi dito |
-| Trabalhar no navegador | `cleartake serve --open` | Um app web local com player A/B, espectrograma e lista de palavras |
+| Trabalhar no navegador | `cleartake serve --open` | Um app web local: solte vários arquivos, cancele qualquer um e compare com um player A/B, um espectrograma e a lista de palavras |
 | Usar em script | `cleartake in.wav --json` | O relatório vai para stdout e o progresso para stderr |
 | Conferir a instalação | `cleartake doctor` | Mostra ffmpeg, o dispositivo e os modelos baixados antes de você esperar um download |
 

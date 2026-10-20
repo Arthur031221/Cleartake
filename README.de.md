@@ -18,14 +18,19 @@
   <a href="README.md">English</a> | <a href="README.zh-TW.md">繁體中文</a> | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | Deutsch | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
-Der DNSMOS-Hintergrundwert steigt von **2,98 auf 4,08** und der Gesamtwert von **2,59 auf 3,14** auf 103 VoiceBank-DEMAND-Testclips, mit der Studio-Engine und nur der Verbesserungsstufe, bei 13,8-facher Echtzeit auf einer RTX 5090.<br>
-<sub>Methode: jeder achte der 824 Testsätze, Stärke 1,0, ohne Lautheitsschritt, DNSMOS P.835 über `speechmos`, GPU aufgewärmt. Die Wortfehlerrate hat sich bei diesem leichten Rauschen nicht verbessert. Die vollständige Tabelle samt Einschränkungen steht in [benchmarks/README.md](benchmarks/README.md) (auf Englisch).</sub>
-
 <p align="center">
   <img src="assets/demo.gif" alt="Cleartake-Weboberfläche: Datei ablegen, vorher und nachher anhören, Wortprüfung ansehen" width="860">
 </p>
 
 Ich habe Cleartake für die Aufnahme gebaut, die bis auf Rauschen, Lüfter und Raumklang gut ist. Es führt ein Modell zur Sprachverbesserung auf Ihrem Rechner aus, stellt die Lautheit auf ein Sendeziel ein, behält das Videobild Byte für Byte und transkribiert dann Original und Ergebnis, um jedes veränderte Wort zu zeigen. Es wird nichts hochgeladen.
+
+```bash
+uv tool install git+https://github.com/Arthur031221/Cleartake
+cleartake serve --open
+```
+
+Der DNSMOS-Hintergrundwert steigt von **2,98 auf 4,08** und der Gesamtwert von **2,59 auf 3,14** auf 103 VoiceBank-DEMAND-Testclips, mit der Studio-Engine und nur der Verbesserungsstufe, bei 13,8-facher Echtzeit auf einer RTX 5090.<br>
+<sub>Methode: jeder achte der 824 Testsätze, Stärke 1,0, ohne Lautheitsschritt, DNSMOS P.835 über `speechmos`, GPU aufgewärmt. Die Wortfehlerrate hat sich bei diesem leichten Rauschen nicht verbessert. Die vollständige Tabelle samt Einschränkungen steht in [benchmarks/README.md](benchmarks/README.md) (auf Englisch).</sub>
 
 ## Vorher und nachher
 
@@ -62,7 +67,7 @@ Ich behaupte nicht, dass ein Entrauscher Sprache repariert. Cleartake entfernt d
 | Ein Plattformziel treffen | `cleartake talk.wav --preset youtube` | Erst Verstärkung, dann Limiter, und der Bericht zeigt den gemessenen Wert |
 | Wortprüfung überspringen | `cleartake talk.wav --no-check` | Die Prüfung kostet einen Whisper-Durchlauf und lässt sich abschalten |
 | In einer anderen Sprache prüfen | `cleartake talk.wav --language de --whisper small` | Nehmen Sie ein Modell, das lesen kann, was gesagt wurde |
-| Im Browser arbeiten | `cleartake serve --open` | Eine lokale Web-App mit A/B-Player, Spektrogramm und Wortliste |
+| Im Browser arbeiten | `cleartake serve --open` | Eine lokale Web-App: mehrere Dateien ablegen, jede einzeln abbrechen, dann mit A/B-Player, Spektrogramm und Wortliste vergleichen |
 | Per Skript nutzen | `cleartake in.wav --json` | Der Bericht geht nach stdout und der Fortschritt nach stderr |
 | Einrichtung prüfen | `cleartake doctor` | Zeigt ffmpeg, das Gerät und die geladenen Modelle an, bevor Sie auf einen Download warten |
 

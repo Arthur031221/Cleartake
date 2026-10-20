@@ -18,14 +18,19 @@
   <a href="README.md">English</a> | <a href="README.zh-TW.md">繁體中文</a> | 简体中文 | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.de.md">Deutsch</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
-在 103 段 VoiceBank-DEMAND 测试音频上，DNSMOS 背景分数从 **2.98 提升到 4.08**，整体分数从 **2.59 提升到 3.14**。使用 studio 引擎，只看增强阶段，在一张 RTX 5090 上为 13.8 倍实时速度。<br>
-<sub>方法：从 824 句测试语料中每 8 句取 1 句，强度 1.0，不做响度调整，DNSMOS P.835 通过 `speechmos` 计算，GPU 已预热。在这种轻度噪声下，词错误率没有改善。完整表格和限制见 [benchmarks/README.md](benchmarks/README.md)（英文）。</sub>
-
 <p align="center">
   <img src="assets/demo.gif" alt="Cleartake 网页界面：拖入文件，试听前后差异，查看词语检查" width="860">
 </p>
 
 我做 Cleartake，是为了那种内容很好、只是有嘶声、风扇声和房间回声的录音。它在你的电脑上运行语音增强模型，把响度调到广播目标，视频画面逐字节保持不变，最后转写原文件和处理结果，告诉你哪些词变了。不会上传任何东西。
+
+```bash
+uv tool install git+https://github.com/Arthur031221/Cleartake
+cleartake serve --open
+```
+
+在 103 段 VoiceBank-DEMAND 测试音频上，DNSMOS 背景分数从 **2.98 提升到 4.08**，整体分数从 **2.59 提升到 3.14**。使用 studio 引擎，只看增强阶段，在一张 RTX 5090 上为 13.8 倍实时速度。<br>
+<sub>方法：从 824 句测试语料中每 8 句取 1 句，强度 1.0，不做响度调整，DNSMOS P.835 通过 `speechmos` 计算，GPU 已预热。在这种轻度噪声下，词错误率没有改善。完整表格和限制见 [benchmarks/README.md](benchmarks/README.md)（英文）。</sub>
 
 ## 处理前后
 
@@ -62,7 +67,7 @@
 | 符合平台目标 | `cleartake talk.wav --preset youtube` | 先增益再限幅，报告显示实际测量值 |
 | 跳过词语检查 | `cleartake talk.wav --no-check` | 检查需要跑一次 Whisper，所以可以关掉 |
 | 用其他语言审计 | `cleartake talk.wav --language de --whisper small` | 使用读得懂该语言的模型 |
-| 在浏览器中操作 | `cleartake serve --open` | 本机网页界面，有 A/B 播放器、频谱图和词语列表 |
+| 在浏览器中操作 | `cleartake serve --open` | 本机网页界面：可一次拖入多个文件，随时取消任何一个，并用 A/B 播放器、频谱图和词语列表对比 |
 | 写成脚本 | `cleartake in.wav --json` | 报告输出到 stdout，进度输出到 stderr |
 | 检查环境 | `cleartake doctor` | 在你等下载之前，先打印 ffmpeg、设备和已下载的模型 |
 

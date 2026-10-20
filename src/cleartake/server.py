@@ -24,6 +24,11 @@ WEB_DIR = Path(__file__).with_name("web")
 ALLOWED_SUFFIXES = media.MEDIA_SUFFIXES
 KEEP_FINISHED_JOBS = 12
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+OPEN_RESULT_SECONDS = 300  # a finished job someone polled this recently is not pruned
+
+
+class Cancelled(Exception):
+    """Raised between stages when the user cancelled a running job."""
 
 
 @dataclass
@@ -38,7 +43,9 @@ class Job:
     error: str = ""
     report: dict | None = None
     output: Path | None = None
+    cancel: bool = False
     created: float = field(default_factory=time.time)
+    seen: float = 0.0
 
     def public(self, position: int = 0) -> dict:
         return {
@@ -61,30 +68,63 @@ class Jobs:
         self.engine_factory = engine_factory
         self.items: dict[str, Job] = {}
         self.pending: queue.Queue[str] = queue.Queue()
+        self.lock = threading.Lock()
         threading.Thread(target=self._work, daemon=True).start()
 
     def add(self, job: Job) -> None:
-        self.items[job.id] = job
-        self.pending.put(job.id)
-        self._prune()
+        with self.lock:
+            self.items[job.id] = job
+            self.pending.put(job.id)
+            self._prune()
+
+    def cancel(self, job: Job) -> None:
+        """Stop a queued or running job, or discard a finished one."""
+        with self.lock:
+            if job.state == "queued":
+                job.state = "cancelled"
+            elif job.state == "running":
+                job.cancel = True
+                return
+            else:
+                self.items.pop(job.id, None)
+        shutil.rmtree(job.folder, ignore_errors=True)
 
     def _prune(self) -> None:
-        """Keep the newest finished jobs, so a long session does not fill the disk."""
+        """Keep the newest finished jobs, so a long session does not fill the disk.
+
+        A job whose page polled it a moment ago stays, so a big batch is not pruned under the user.
+        """
+        now = time.time()
         finished = sorted(
-            (j for j in self.items.values() if j.state in ("done", "error")), key=lambda j: j.created
+            (
+                j
+                for j in self.items.values()
+                if j.state in ("done", "error", "cancelled") and now - j.seen > OPEN_RESULT_SECONDS
+            ),
+            key=lambda j: j.created,
         )
         for old in finished[: max(0, len(finished) - KEEP_FINISHED_JOBS)]:
             del self.items[old.id]
             shutil.rmtree(old.folder, ignore_errors=True)
 
     def position(self, job: Job) -> int:
-        waiting = [j for j in self.items.values() if j.state == "queued"]
-        return sorted(waiting, key=lambda j: j.created).index(job) + 1 if job.state == "queued" else 0
+        waiting = sorted(
+            (j for j in list(self.items.values()) if j.state == "queued"), key=lambda j: j.created
+        )
+        return waiting.index(job) + 1 if job in waiting else 0
+
+    def _stage(self, job: Job, name: str) -> None:
+        if job.cancel:
+            raise Cancelled
+        job.stage = name
 
     def _work(self) -> None:
         while True:
-            job = self.items[self.pending.get()]
-            job.state = "running"
+            job = self.items.get(self.pending.get())
+            with self.lock:
+                if job is None or job.state != "queued":
+                    continue  # cancelled or pruned while it waited
+                job.state = "running"
             try:
                 target = (
                     job.folder
@@ -94,12 +134,17 @@ class Jobs:
                     job.source,
                     job.options,
                     target,
-                    on_stage=lambda name, j=job: setattr(j, "stage", name),
+                    on_stage=lambda name, j=job: self._stage(j, name),
                     preview_dir=job.folder,
                     engine=self.engine_factory(job.options.engine),
                 )
+                if job.cancel:
+                    raise Cancelled
                 job.output = target
                 job.state = "done"
+            except Cancelled:
+                job.state = "cancelled"
+                shutil.rmtree(job.folder, ignore_errors=True)
             except Exception as err:  # the worker must outlive any single bad file
                 job.state, job.error = "error", str(err) or err.__class__.__name__
 
@@ -253,7 +298,14 @@ def create_app(
     @app.get("/api/jobs/{job_id}")
     def status(job_id: str) -> dict:
         job = find(job_id)
+        job.seen = time.time()
         return job.public(jobs.position(job))
+
+    @app.delete("/api/jobs/{job_id}")
+    def cancel(job_id: str) -> dict:
+        job = find(job_id)
+        jobs.cancel(job)
+        return {"state": job.state, "cancelling": job.cancel and job.state == "running"}
 
     def result_file(job_id: str, name: str) -> Path:
         job = find(job_id)

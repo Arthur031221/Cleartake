@@ -50,11 +50,7 @@ def page(browser):
     context.close()
 
 
-@pytest.fixture
-def app_url(fake_engine, tmp_path_factory, monkeypatch):
-    """The real FastAPI app on a free port, with a fake engine and a stubbed transcript."""
-    monkeypatch.setattr(drift, "transcribe", lambda *a, **k: [drift.Word("hello", 0, 0.3)])
-    app = create_app(engine_factory=lambda _id: fake_engine, work_dir=tmp_path_factory.mktemp("work"))
+def _serve(app):
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=0, log_level="error"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
@@ -64,6 +60,22 @@ def app_url(fake_engine, tmp_path_factory, monkeypatch):
     yield f"http://127.0.0.1:{port}/"
     server.should_exit = True
     thread.join(5)
+
+
+@pytest.fixture
+def app_url(fake_engine, tmp_path_factory, monkeypatch):
+    """The real FastAPI app on a free port, with a fake engine and a stubbed transcript."""
+    monkeypatch.setattr(drift, "transcribe", lambda *a, **k: [drift.Word("hello", 0, 0.3)])
+    yield from _serve(
+        create_app(engine_factory=lambda _id: fake_engine, work_dir=tmp_path_factory.mktemp("work"))
+    )
+
+
+@pytest.fixture
+def held_app_url(gate, tmp_path_factory, monkeypatch):
+    """Like app_url, but the engine waits for the test, so the first job stays running."""
+    monkeypatch.setattr(drift, "transcribe", lambda *a, **k: [drift.Word("hello", 0, 0.3)])
+    yield from _serve(create_app(engine_factory=lambda _id: gate, work_dir=tmp_path_factory.mktemp("work")))
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build and check the wheel
+        run: |
+          uv build --wheel
+          python3 tools/check_wheel.py dist/*.whl
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(awk -v v="${GITHUB_REF_NAME#v}" '$1=="##" && $2==v {on=1; next} $1=="##" {on=0} on' CHANGELOG.md)"
+          gh release create "$GITHUB_REF_NAME" dist/*.whl --title "Cleartake ${GITHUB_REF_NAME#v}" --notes "$notes"

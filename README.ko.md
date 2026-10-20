@@ -18,14 +18,19 @@
   <a href="README.md">English</a> | <a href="README.zh-TW.md">繁體中文</a> | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja.md">日本語</a> | 한국어 | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.de.md">Deutsch</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
-VoiceBank-DEMAND 테스트 음성 103개에서 DNSMOS 배경 점수는 **2.98에서 4.08**로, 종합 점수는 **2.59에서 3.14**로 올랐습니다. studio 엔진, 향상 단계만 RTX 5090 한 장에서 실시간의 13.8배입니다.<br>
-<sub>방법: 테스트 발화 824개 중 8개마다 1개를 골랐고, 강도 1.0, 음량 조정 없음, DNSMOS P.835는 `speechmos`로 계산했으며 GPU는 예열한 상태입니다. 이 정도의 가벼운 잡음에서는 단어 오류율이 좋아지지 않았습니다. 전체 표와 한계는 [benchmarks/README.md](benchmarks/README.md)(영어)에 있습니다.</sub>
-
 <p align="center">
   <img src="assets/demo.gif" alt="Cleartake 웹 화면: 파일을 놓고, 전후를 비교해 듣고, 단어 검사를 확인합니다" width="860">
 </p>
 
 내용은 좋은데 히스 소리, 팬 소리, 방 울림이 남은 녹음을 위해 Cleartake를 만들었습니다. 음성 향상 모델을 내 컴퓨터에서 실행하고, 음량을 방송 기준에 맞추고, 영상 화면은 바이트 단위로 그대로 두고, 원본과 결과를 모두 받아쓰기해서 바뀐 단어를 보여 줍니다. 아무것도 업로드하지 않습니다.
+
+```bash
+uv tool install git+https://github.com/Arthur031221/Cleartake
+cleartake serve --open
+```
+
+VoiceBank-DEMAND 테스트 음성 103개에서 DNSMOS 배경 점수는 **2.98에서 4.08**로, 종합 점수는 **2.59에서 3.14**로 올랐습니다. studio 엔진, 향상 단계만 RTX 5090 한 장에서 실시간의 13.8배입니다.<br>
+<sub>방법: 테스트 발화 824개 중 8개마다 1개를 골랐고, 강도 1.0, 음량 조정 없음, DNSMOS P.835는 `speechmos`로 계산했으며 GPU는 예열한 상태입니다. 이 정도의 가벼운 잡음에서는 단어 오류율이 좋아지지 않았습니다. 전체 표와 한계는 [benchmarks/README.md](benchmarks/README.md)(영어)에 있습니다.</sub>
 
 ## 처리 전과 후
 
@@ -62,7 +67,7 @@ VoiceBank-DEMAND 테스트 음성 103개에서 DNSMOS 배경 점수는 **2.98에
 | 플랫폼 기준에 맞추기 | `cleartake talk.wav --preset youtube` | 먼저 게인, 다음에 리미터. 보고서에는 실측값이 나옵니다 |
 | 단어 검사 생략 | `cleartake talk.wav --no-check` | 검사에는 Whisper를 한 번 돌려야 하므로 끌 수 있습니다 |
 | 다른 언어로 감사 | `cleartake talk.wav --language de --whisper small` | 그 언어를 읽을 수 있는 모델을 사용합니다 |
-| 브라우저에서 작업 | `cleartake serve --open` | A/B 플레이어, 스펙트로그램, 단어 목록이 있는 로컬 웹 앱 |
+| 브라우저에서 작업 | `cleartake serve --open` | 파일 여러 개를 한 번에 놓고 하나씩 취소할 수 있는 로컬 웹 앱. A/B 플레이어, 스펙트로그램, 단어 목록이 있습니다 |
 | 스크립트로 사용 | `cleartake in.wav --json` | 보고서는 stdout, 진행 상황은 stderr로 나옵니다 |
 | 환경 점검 | `cleartake doctor` | 다운로드를 기다리기 전에 ffmpeg, 장치, 받아 둔 모델을 출력합니다 |
 

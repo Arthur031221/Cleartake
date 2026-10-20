@@ -51,6 +51,7 @@ export class ABPlayer {
     this.sources = {};
   }
 
+  dispose() { this.stop(); this.ctx.close().catch(() => {}); }
   pause() { this.offset = this.position; this.playing = false; this.stopSources(); }
   stop(to = 0) { this.playing = false; this.stopSources(); this.offset = to; }
   seek(time) { const t = Math.min(Math.max(time, 0), this.duration); this.playing ? this.play(t) : (this.offset = t); }

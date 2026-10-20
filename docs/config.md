@@ -37,8 +37,9 @@ The web app is a thin client for these routes, so you can script it.
 | Route | Purpose |
 | --- | --- |
 | `GET /api/health` | version, device, ffmpeg, engines and whether each is downloaded |
-| `POST /api/jobs` | multipart `file` plus `engine`, `strength`, `preset`, `check`, returns `202` and a job id |
-| `GET /api/jobs/{id}` | state (`queued`, `running`, `done`, `error`), current stage, report |
+| `POST /api/jobs` | multipart `file` plus `engine`, `strength`, `preset`, `check`, returns `202` and a job id. The page sends one request per file |
+| `GET /api/jobs/{id}` | state (`queued`, `running`, `done`, `error`, `cancelled`), current stage, queue position, report |
+| `DELETE /api/jobs/{id}` | cancels a queued job at once, asks a running job to stop at its next stage, and removes a finished one |
 | `GET /api/jobs/{id}/original.wav`, `enhanced.wav` | the two previews |
 | `GET /api/jobs/{id}/download` | the finished file |
 | `GET /api/jobs/{id}/report.json` | the report |

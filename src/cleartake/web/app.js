@@ -6,7 +6,8 @@ const $ = (id) => document.getElementById(id);
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const lufs = (n) => `${n.toFixed(1)}`;
 
-const state = { file: null, demo: false, player: null, job: null, report: null, stageNames: [] };
+const state = { files: [], jobs: [], demo: false, player: null, report: null, options: null };
+const ACTIVE = ["pending", "uploading", "queued", "running"];
 
 async function init() {
   const select = $("lang");
@@ -52,6 +53,12 @@ function enterDemo() {
   $("sample").addEventListener("click", loadSample);
 }
 
+let resizing = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(resizing);
+  resizing = setTimeout(() => { if (state.player && !$("result").hidden) drawStage(state.player); }, 150);
+});
+
 function updateEngineHint() {
   const engine = document.querySelector("input[name=engine]:checked").value;
   $("engine-hint").textContent = t(`engine.${engine}.hint`);
@@ -59,23 +66,34 @@ function updateEngineHint() {
 
 function bindSetup() {
   const drop = $("drop"), input = $("file");
-  const choose = (file) => {
-    state.file = file;
-    $("file-name").hidden = !file;
-    $("file-name").textContent = file ? file.name : "";
-    drop.classList.toggle("has-file", !!file);
-    $("go").disabled = !file;
+  const choose = (files) => {
+    state.files = [...files];
+    const name = state.files.length > 1 ? t("drop.count", { n: state.files.length }) : state.files[0]?.name || "";
+    $("file-name").hidden = !state.files.length;
+    $("file-name").textContent = name;
+    drop.classList.toggle("has-file", state.files.length > 0);
+    $("go").disabled = !state.files.length;
   };
-  input.addEventListener("change", () => choose(input.files[0] || null));
+  input.addEventListener("change", () => choose(input.files));
   drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
   for (const name of ["dragenter", "dragover"]) drop.addEventListener(name, (e) => { e.preventDefault(); drop.classList.add("over"); });
   for (const name of ["dragleave", "drop"]) drop.addEventListener(name, () => drop.classList.remove("over"));
-  drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) choose(e.dataTransfer.files[0]); });
+  drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files.length) choose(e.dataTransfer.files); });
   document.querySelectorAll("input[name=engine]").forEach((r) => r.addEventListener("change", updateEngineHint));
   $("strength").addEventListener("input", () => { $("strength-out").textContent = `${$("strength").value}%`; });
   $("go").addEventListener("click", submit);
   $("again").addEventListener("click", reset);
   $("retry").addEventListener("click", reset);
+  $("back").addEventListener("click", backToFiles);
+  $("cancel").addEventListener("click", () => cancelJob(state.jobs[0]));
+  $("files").addEventListener("click", (e) => {
+    const button = e.target.closest("button[data-act]");
+    if (!button) return;
+    const job = state.jobs[Number(button.dataset.index)];
+    if (button.dataset.act === "cancel") cancelJob(job);
+    else if (button.dataset.act === "review") openResult(job);
+  });
+  document.addEventListener("languagechange", () => { if (state.jobs.length) renderProgress(); });
 }
 
 function show(...ids) {
@@ -83,72 +101,232 @@ function show(...ids) {
 }
 
 function reset() {
-  state.player?.stop(); state.player = null; state.report = null;
+  for (const job of state.jobs) if (ACTIVE.includes(job.status)) cancelJob(job);
+  state.jobs = [];
+  disposePlayer(); state.report = null;
   $("error").hidden = true; $("retry").hidden = true;
   show("intro", "setup");
+}
+
+function disposePlayer() {
+  state.player?.dispose();
+  state.player = null;
 }
 
 function showError(message) {
   show("progress");
   $("progress-title").textContent = "";
   $("stages").innerHTML = "";
+  $("files").innerHTML = "";
   $("queue").textContent = "";
+  $("cancel").hidden = true;
   $("error").textContent = t("err.generic", { message });
   $("error").hidden = false;
   $("retry").hidden = false;
 }
 
-async function submit() {
-  const form = new FormData();
-  form.append("file", state.file);
-  form.append("engine", document.querySelector("input[name=engine]:checked").value);
-  form.append("strength", String($("strength").value / 100));
-  form.append("preset", $("preset").value);
-  form.append("check", $("check").checked);
+const jobUrl = (job, tail = "") => `api/jobs/${job.id}${tail}`;
+
+function submit() {
+  state.options = {
+    engine: document.querySelector("input[name=engine]:checked").value,
+    strength: String($("strength").value / 100),
+    preset: $("preset").value,
+    check: String($("check").checked),
+  };
+  state.jobs = state.files.map((file) => ({ file, id: null, status: "pending", pct: 0, stage: "", position: 0, error: "", report: null }));
   $("go").disabled = true;
-  try {
-    const response = await fetch("api/jobs", { method: "POST", body: form });
-    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || response.statusText);
-    state.job = (await response.json()).id;
-  } catch (err) {
-    $("go").disabled = false;
-    return showError(err.message);
-  }
-  show("progress");
   $("error").hidden = true; $("retry").hidden = true;
-  poll();
+  show("progress");
+  renderProgress();
+  const jobs = state.jobs;
+  (async () => {
+    for (const job of jobs) {
+      if (job.status !== "pending" || jobs !== state.jobs) continue;
+      job.status = "uploading";
+      renderProgress();
+      try {
+        job.id = await upload(job);
+        job.status = "queued";
+      } catch (err) {
+        job.status = err instanceof Cancel ? "cancelled" : "error";
+        job.error = err.message;
+      }
+      renderProgress();
+      if (job.id && jobs === state.jobs) startPolling();
+    }
+  })();
+}
+
+class Cancel extends Error {}
+
+function upload(job) {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", job.file);
+    for (const [key, value] of Object.entries(state.options)) form.append(key, value);
+    const xhr = new XMLHttpRequest();
+    job.xhr = xhr;
+    xhr.open("POST", "api/jobs");
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      job.pct = Math.round((e.loaded / e.total) * 100);
+      renderProgress();
+    };
+    xhr.onload = () => {
+      let body = {};
+      try { body = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status === 202) resolve(body.id);
+      else reject(new Error(body.detail || xhr.statusText || String(xhr.status)));
+    };
+    xhr.onerror = () => reject(new Error(t("err.lost")));
+    xhr.onabort = () => reject(new Cancel());
+    xhr.send(form);
+  });
+}
+
+async function cancelJob(job) {
+  if (!job || !ACTIVE.includes(job.status)) return;
+  if (job.status === "pending") job.status = "cancelled";
+  else if (job.status === "uploading") job.xhr.abort();
+  else {
+    try {
+      const answer = await (await fetch(jobUrl(job), { method: "DELETE" })).json();
+      job.status = answer.cancelling ? "cancelling" : "cancelled";
+    } catch {
+      job.status = "error"; job.error = t("err.lost");
+    }
+  }
+  renderProgress();
+}
+
+function rowStatus(job) {
+  switch (job.status) {
+    case "pending": return t("file.waiting");
+    case "uploading": return t("file.uploading", { pct: job.pct });
+    case "queued": return job.position ? t("queue.wait", { n: job.position }) : t("stage.queued");
+    case "running": return t(`stage.${job.stage || "decode"}`);
+    case "cancelling": return t("file.cancelling");
+    case "done": return t("file.done");
+    case "cancelled": return t("file.cancelled");
+    default: return t("err.generic", { message: job.error });
+  }
+}
+
+function renderProgress() {
+  const jobs = state.jobs;
+  if (!jobs.length) return;
+  const single = jobs.length === 1, job = jobs[0];
+  $("stages").hidden = !single;
+  $("files").hidden = single;
+  $("cancel").hidden = !(single && ACTIVE.includes(job.status));
+  $("error").hidden = true;
+  const finished = jobs.every((j) => !ACTIVE.includes(j.status) && j.status !== "cancelling");
+  $("retry").hidden = !finished;
+  $("retry").textContent = t(single ? "download.another" : "batch.again");
+  if (single) {
+    $("progress-title").textContent = ["uploading", "pending"].includes(job.status)
+      ? t("file.uploading", { pct: job.pct }) : rowStatus(job);
+    renderStages(job);
+    if (job.status === "error") { $("error").textContent = t("err.generic", { message: job.error }); $("error").hidden = false; }
+    return;
+  }
+  $("progress-title").textContent = t("batch.title", { done: jobs.filter((j) => j.status === "done").length, n: jobs.length });
+  $("queue").textContent = "";
+  $("files").innerHTML = "";
+  jobs.forEach((j, i) => {
+    const li = document.createElement("li");
+    li.dataset.status = j.status;
+    const name = document.createElement("span");
+    name.className = "file-label"; name.textContent = j.file.name;
+    const status = document.createElement("span");
+    status.className = "file-status"; status.textContent = rowStatus(j);
+    li.append(name, status);
+    const add = (act, text, aria) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "ghost small"; b.dataset.act = act; b.dataset.index = i;
+      b.textContent = text; if (aria) b.setAttribute("aria-label", `${aria}: ${j.file.name}`);
+      li.append(b);
+    };
+    if (j.status === "done") {
+      add("review", t("file.review"));
+      const a = document.createElement("a");
+      a.className = "ghost small btn"; a.href = jobUrl(j, "/download"); a.textContent = t("file.download"); a.setAttribute("download", "");
+      li.append(a);
+    } else if (ACTIVE.includes(j.status)) add("cancel", "\u00d7", t("file.cancel"));
+    $("files").append(li);
+  });
 }
 
 function renderStages(job) {
-  const stages = job.stages.filter((name) => name !== "check" || $("check").checked);
+  const stages = ["decode", "enhance", "finish", "check", "write"].filter((name) => name !== "check" || state.options.check === "true");
   const at = stages.indexOf(job.stage);
-  $("progress-title").textContent = job.state === "queued" ? t("stage.queued") : t(`stage.${job.stage || "decode"}`);
+  const waiting = job.status !== "running" && job.status !== "done";
   $("stages").innerHTML = "";
   stages.forEach((name, i) => {
     const li = document.createElement("li");
-    li.className = job.state === "queued" ? "" : i < at || job.state === "done" ? "done" : i === at ? "active" : "";
+    li.className = waiting ? "" : i < at || job.status === "done" ? "done" : i === at ? "active" : "";
     li.innerHTML = `<i class="dot"></i><span>${t(`stage.${name}`)}</span>`;
     $("stages").append(li);
   });
-  $("queue").textContent = job.state === "queued" ? t("queue.wait", { n: job.queue_position }) : "";
+  $("queue").textContent = job.status === "queued" && job.position ? t("queue.wait", { n: job.position }) : "";
 }
 
-async function poll() {
-  for (;;) {
-    const job = await (await fetch(`api/jobs/${state.job}`)).json();
-    if (job.state === "error") return showError(job.error);
-    renderStages(job);
-    if (job.state === "done") {
-      const base = `api/jobs/${state.job}`;
-      $("dl-audio").href = `${base}/download`;
-      $("dl-report").href = `${base}/report.json`;
-      return showResult(`${base}/original.wav`, `${base}/enhanced.wav`, job.report);
+let polledJobs = null;
+async function startPolling() {
+  const jobs = state.jobs;
+  if (polledJobs === jobs) return;
+  polledJobs = jobs;
+  let failures = 0;
+  while (jobs === state.jobs) {
+    const live = jobs.filter((j) => j.id && ["queued", "running", "cancelling"].includes(j.status));
+    if (!live.length && jobs.every((j) => !ACTIVE.includes(j.status))) break;
+    try {
+      await Promise.all(live.map((j) => refresh(j)));
+      failures = 0;
+    } catch {
+      if (++failures >= 5) for (const j of live) { j.status = "error"; j.error = t("err.lost"); }
     }
+    if (jobs === state.jobs) renderProgress();
+    if (jobs.length === 1 && jobs[0].status === "done" && jobs === state.jobs) openResult(jobs[0]);
     await new Promise((resolve) => setTimeout(resolve, 600));
   }
+  if (polledJobs === jobs) polledJobs = null;
+}
+
+async function refresh(job) {
+  const response = await fetch(jobUrl(job));
+  if (response.status === 404) { job.status = "error"; job.error = t("err.gone"); return; }
+  if (!response.ok) throw new Error(response.statusText);
+  const data = await response.json();
+  job.stage = data.stage; job.position = data.queue_position;
+  if (data.state === "error") { job.status = "error"; job.error = data.error; }
+  else if (data.state === "cancelled") job.status = "cancelled";
+  else if (data.state === "done") { job.status = "done"; job.report = data.report; }
+  else if (job.status !== "cancelling") job.status = data.state;
+}
+
+function openResult(job) {
+  $("dl-audio").href = jobUrl(job, "/download");
+  $("dl-report").href = jobUrl(job, "/report.json");
+  $("back").hidden = state.jobs.length < 2;
+  $("again").hidden = state.jobs.length > 1;
+  showResult(jobUrl(job, "/original.wav"), jobUrl(job, "/enhanced.wav"), job.report).catch((err) => {
+    if (state.jobs.length < 2) return showError(err.message);
+    job.status = "error"; job.error = err.message;
+    backToFiles();
+  });
+}
+
+function backToFiles() {
+  state.player?.stop();
+  show("progress");
+  renderProgress();
 }
 
 async function loadSample() {
+  $("back").hidden = true;
+  $("again").hidden = false;
   $("dl-audio").href = "demo/enhanced.mp3";
   $("dl-report").href = "demo/report.json";
   try {
@@ -160,7 +338,9 @@ async function loadSample() {
 }
 
 async function showResult(originalUrl, enhancedUrl, report) {
-  const player = new ABPlayer(...(await decodePair(originalUrl, enhancedUrl)));
+  const buffers = await decodePair(originalUrl, enhancedUrl);
+  disposePlayer();
+  const player = new ABPlayer(...buffers);
   state.player = player; state.report = report;
   show("result");
   drawStage(player);
@@ -204,7 +384,7 @@ function updateTime() {
   $("time").textContent = `${fmtTime(p.position)} / ${fmtTime(p.duration)}`;
   $("playhead").style.left = `${(p.position / p.duration) * 100}%`;
   $("play-icon").setAttribute("d", p.playing ? "M6 5h4v14H6zm8 0h4v14h-4z" : "M8 5v14l11-7z");
-  $("play").setAttribute("aria-label", p.playing ? "Pause" : "Play");
+  $("play").setAttribute("aria-label", t(p.playing ? "player.pause" : "player.play"));
 }
 
 let bound = false;
@@ -221,8 +401,15 @@ function bindPlayer(player) {
   $("loop").addEventListener("change", applyRegion);
   $("clear").addEventListener("click", () => setRegion(null));
   document.addEventListener("keydown", (e) => {
-    if ($("result").hidden || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && e.key === " ") return;
+    const tag = document.activeElement.tagName;
+    if ($("result").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/INPUT|SELECT|TEXTAREA/.test(tag) || (e.key === " " && /BUTTON|A/.test(tag)) || document.activeElement.getAttribute("role") === "button") return;
     if (e.key === " ") { e.preventDefault(); toggle(); }
+    else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      if (document.activeElement !== stage) return;
+      e.preventDefault();
+      state.player.seek(state.player.position + (e.key === "ArrowRight" ? 5 : -5));
+    }
     else if (e.key.toLowerCase() === "b") setMode(state.player.mode === "enhanced" ? "original" : "enhanced");
     else if (e.key === "Escape") setRegion(null);
   });
@@ -295,7 +482,11 @@ function renderDrift(drift) {
     const el = document.createElement("span");
     el.textContent = `${text} `;
     if (cls) el.className = cls;
-    el.addEventListener("click", () => { state.player.seek(start); state.player.play(start); });
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    const play = () => { state.player.seek(start); state.player.play(start); };
+    el.addEventListener("click", play);
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); play(); } });
     box.append(el);
   };
   for (const word of drift.transcript_after || []) {

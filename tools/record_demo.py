@@ -36,7 +36,10 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         server, url = serve(Path(tmp) / "work")
         with sync_playwright() as p:
-            browser = p.chromium.launch(channel="chrome")
+            try:
+                browser = p.chromium.launch(channel="chrome")
+            except Exception:
+                browser = p.chromium.launch()
             context = browser.new_context(
                 viewport=SIZE,
                 record_video_dir=tmp,
