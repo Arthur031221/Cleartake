@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+* `cleartake doctor` reported every model as not downloaded because it looked in the wrong folder. It now checks the two engines and both Whisper models the word check uses
+* The enhancement engine no longer prints a one step progress bar for each file, and the check stage is only announced when the check runs
+* CI runs the tests without the browser on macOS (Apple silicon) and Windows as well as Linux
+
 ## 0.2.0
 
 * The web app has a Spoken language menu for the word check: English, 18 other languages or automatic detection. English keeps `base.en` and everything else uses the multilingual Whisper `small`. The server refuses a language it does not offer

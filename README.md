@@ -192,8 +192,8 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
 * **The loudness target can be missed by about 0.5 LU** when the true peak ceiling stops the gain first.
 * **Quality scores are predicted.** DNSMOS is a learned model, not a listening test, and I only ran English speech with
   the DEMAND noise types. Music, reverb and other languages aren't measured.
-* **Only Linux was tested** (an RTX 5090 and 3 CPU cores, Python 3.10 and 3.12). macOS and Windows should work but I
-  haven't run them. There's no Docker image yet.
+* **The real models only ran on Linux** (an RTX 5090 and 3 CPU cores, Python 3.10 and 3.12). The tests without the
+  browser also pass in CI on macOS (Apple silicon) and Windows, with a stand-in for the models. There's no Docker image yet.
 * **The web app's word check in other languages is untested.** English uses Whisper `base.en`. Any other language you pick in the setup card, or Detect automatically, uses Whisper `small` (about 460 MB, downloaded once). I haven't measured its accuracy per language.
 * **Batch mode needs distinct names.** `-o` keeps the folder layout of a folder input, and Cleartake refuses to start
   when two inputs would write the same file or when a result would replace its input.
@@ -203,7 +203,7 @@ Other timings: a 76 second video took 6.6 seconds end to end without the word ch
 
 ```bash
 uv pip install -e ".[dev]" && playwright install chromium
-pytest                 # 82 tests, includes browser tests of the web app
+pytest                 # 85 tests, includes browser tests of the web app
 pytest -m model        # 2 more that load the real models
 ruff check . && ruff format --check .
 ```

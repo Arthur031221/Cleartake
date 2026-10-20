@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cleartake"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local speech enhancement for voice recordings and videos, with a word drift check. A free offline alternative to Adobe Podcast Enhance."
 readme = "README.md"
 license = { text = "MIT" }
