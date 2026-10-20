@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from cleartake import cli, drift, loudness, media, pipeline
+from cleartake import cli, drift, engines, loudness, media, pipeline
 
 
 @pytest.fixture(autouse=True)
@@ -136,3 +136,38 @@ def test_loudness_after_is_measured_on_the_written_file(wav_file, fake_engine, t
     report = pipeline.run(wav_file, pipeline.Options(check=False, fmt="mp3"), out, engine=fake_engine)
     written = loudness.measure(media.decode(out))
     assert report["loudness"]["after"] == written.as_dict()
+
+
+def test_check_stage_is_announced_only_when_the_check_runs(wav_file, fake_engine, tmp_path):
+    seen = {}
+    for check in (True, False):
+        names = seen.setdefault(check, [])
+        pipeline.run(
+            wav_file,
+            pipeline.Options(check=check),
+            tmp_path / f"{check}.wav",
+            on_stage=names.append,
+            engine=fake_engine,
+        )
+    assert seen[True] == ["decode", "enhance", "finish", "check", "write"]
+    assert seen[False] == ["decode", "enhance", "finish", "write"]
+
+
+def test_doctor_reports_which_models_are_on_disk(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("CLEARTAKE_HOME", str(tmp_path))
+    monkeypatch.setattr(drift, "is_downloaded", lambda name: name == "base.en")
+    checkpoint = tmp_path / "models" / "checkpoints" / "MossFormer2_SE_48K"
+    checkpoint.mkdir(parents=True)
+    (checkpoint / "last_best_checkpoint.pt").write_bytes(b"x")
+    assert cli.main(["doctor"]) in (0, 1)
+    lines = capsys.readouterr().out.splitlines()
+    assert "engine studio (MossFormer2_SE_48K): downloaded" in lines
+    assert "engine classic (FRCRN_SE_16K): downloads on first use" in lines
+    assert "whisper base.en (word check, English): downloaded" in lines
+    assert "whisper small (word check, other languages): downloads on first use" in lines
+
+
+def test_an_empty_checkpoint_folder_does_not_count_as_downloaded(tmp_path, monkeypatch):
+    monkeypatch.setenv("CLEARTAKE_HOME", str(tmp_path))
+    (tmp_path / "models" / "checkpoints" / "FRCRN_SE_16K").mkdir(parents=True)
+    assert not engines.is_downloaded(engines._INFOS["classic"])

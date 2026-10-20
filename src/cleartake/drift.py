@@ -37,6 +37,13 @@ class Word:
         return _NUMBER_WORDS[int(key)] if key.isdigit() and int(key) in _NUMBER_WORDS else key
 
 
+def is_downloaded(model_name: str) -> bool:
+    """Whether faster-whisper has this model in the Hugging Face cache already."""
+    from huggingface_hub import try_to_load_from_cache
+
+    return isinstance(try_to_load_from_cache(f"Systran/faster-whisper-{model_name}", "model.bin"), str)
+
+
 def transcribe(audio: np.ndarray, model_name: str = "base.en", language: str | None = None) -> list[Word]:
     from faster_whisper import WhisperModel
 

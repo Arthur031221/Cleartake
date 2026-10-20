@@ -24,6 +24,11 @@ def home() -> Path:
     return Path(os.environ.get("CLEARTAKE_HOME", Path.home() / ".cache" / "cleartake"))
 
 
+def is_downloaded(info: EngineInfo) -> bool:
+    """ClearerVoice unpacks a model to models/checkpoints/<name>/ in the working folder it runs from."""
+    return (home() / "models" / "checkpoints" / info.model / "last_best_checkpoint.pt").is_file()
+
+
 @dataclass(frozen=True)
 class EngineInfo:
     id: str
@@ -49,7 +54,10 @@ class ClearerVoiceEngine(Engine):
         if self._model is None:
             with _load_lock, _in_dir(home() / "models"):
                 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
-                from clearvoice import ClearVoice
+                from clearvoice import ClearVoice, networks
+
+                # It draws a one step progress bar for every file, which is noise in a terminal.
+                networks.tqdm = lambda iterable, *args, **kwargs: iterable
 
                 with contextlib.redirect_stdout(sys.stderr):
                     self._model = ClearVoice(task="speech_enhancement", model_names=[self.info.model])

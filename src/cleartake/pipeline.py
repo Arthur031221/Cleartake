@@ -92,8 +92,8 @@ def run(
     final = loudness.apply_preset(enhanced, options.preset) if options.preset != "none" else enhanced
 
     report_drift = None
-    stage("check")
     if options.check:
+        stage("check")
         report_drift = drift.check(original, final, options.whisper, options.language)
 
     stage("write")

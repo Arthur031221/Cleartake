@@ -8,7 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import __version__, engines, loudness, media, pipeline
+from . import __version__, drift, engines, loudness, media, pipeline
 
 MEDIA_SUFFIXES = media.MEDIA_SUFFIXES
 
@@ -151,6 +151,10 @@ def enhance_files(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def _download_state(present: bool) -> str:
+    return "downloaded" if present else "downloads on first use"
+
+
 def doctor() -> int:
     ok = True
     for tool in ("ffmpeg", "ffprobe"):
@@ -158,10 +162,10 @@ def doctor() -> int:
         ok &= path is not None
         print(f"{tool}: {path or 'MISSING, install ffmpeg'}")
     print(f"device: {engines.device_name()}")
-    models = engines.home() / "models"
     for info in engines.available():
-        present = (models / info.model).is_dir()
-        print(f"engine {info.id} ({info.model}): {'downloaded' if present else 'downloads on first use'}")
+        print(f"engine {info.id} ({info.model}): {_download_state(engines.is_downloaded(info))}")
+    for model, use in ((pipeline.ENGLISH_MODEL, "English"), (pipeline.MULTILINGUAL_MODEL, "other languages")):
+        print(f"whisper {model} (word check, {use}): {_download_state(drift.is_downloaded(model))}")
     return 0 if ok else 1
 
 
