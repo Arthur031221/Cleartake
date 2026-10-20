@@ -403,7 +403,7 @@ function bindPlayer(player) {
   document.addEventListener("keydown", (e) => {
     const tag = document.activeElement.tagName;
     if ($("result").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (/INPUT|SELECT|TEXTAREA/.test(tag) || (e.key === " " && /BUTTON|A/.test(tag)) || document.activeElement.getAttribute("role") === "button") return;
+    if (/INPUT|SELECT|TEXTAREA/.test(tag) || (e.key === " " && (/BUTTON|A/.test(tag) || document.activeElement.getAttribute("role") === "button"))) return;
     if (e.key === " ") { e.preventDefault(); toggle(); }
     else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       if (document.activeElement !== stage) return;
