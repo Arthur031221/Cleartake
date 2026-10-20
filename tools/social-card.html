@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 675px; background: #100f0c; color: #f2ecdf; font-family: "Noto Sans", "Inter", system-ui, sans-serif; position: relative; overflow: hidden; }
+  .glow { position: absolute; right: -200px; top: -200px; width: 700px; height: 700px; background: radial-gradient(circle, rgb(255 176 46 / .16), transparent 65%); }
+  main { position: absolute; inset: 0; padding: 72px 80px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 18px; font-weight: 700; font-size: 30px; letter-spacing: -.01em; }
+  .brand img { width: 56px; height: 56px; }
+  h1 { font-size: 84px; line-height: 1; letter-spacing: -.045em; margin-top: 44px; max-width: 980px; }
+  h1 em { font-style: normal; color: #ffb02e; }
+  p { margin-top: 20px; font-size: 27px; color: #a39c8c; max-width: 1040px; line-height: 1.35; }
+  .wave { position: absolute; left: 0; width: 1200px; bottom: 168px; height: 90px; }
+  .stats { position: absolute; left: 80px; right: 80px; bottom: 56px; display: flex; gap: 56px; align-items: baseline; font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+  .stats b { white-space: nowrap; font-size: 40px; color: #f2ecdf; font-weight: 700; }
+  .stats b span { color: #ffb02e; }
+  .stats small { display: block; font-size: 18px; color: #a39c8c; margin-top: 4px; font-weight: 400; }
+</style>
+<div class="glow"></div>
+<svg class="wave" viewBox="0 0 1200 120" preserveAspectRatio="none">
+  <polyline fill="none" stroke="#4d483d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" id="noise"/>
+  <line x1="640" y1="60" x2="1200" y2="60" stroke="#ffb02e" stroke-width="5" stroke-linecap="round"/>
+</svg>
+<script>
+  let seed = 7, pts = [];
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let x = 0; x <= 640; x += 8) { const k = 1 - x / 760; pts.push(`${x},${60 + (rnd() - .5) * 110 * k * (.4 + .6 * Math.abs(Math.sin(x / 70)))}`); }
+  document.getElementById("noise").setAttribute("points", pts.join(" "));
+</script>
+<main>
+  <div class="brand"><img src="../assets/logo.svg" alt="">Cleartake</div>
+  <h1>Clean speech,<br><em>on your own machine.</em></h1>
+  <p>Enhance audio or video, compare A and B, see every word that changed.</p>
+</main>
+<div class="stats">
+  <b><span>2.59 → 3.14</span><small>DNSMOS overall, 103 VoiceBank-DEMAND clips</small></b>
+  <b><span>2.98 → 4.08</span><small>DNSMOS background score</small></b>
+  <b><span>13.8x</span><small>realtime, RTX 5090</small></b>
+</div>

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      real_models:
+        description: Also run the tests that download and run the real models
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install
+        run: |
+          uv venv --python ${{ matrix.python }}
+          uv pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[dev]"
+          .venv/bin/python -m playwright install --with-deps chromium
+      - name: Lint
+        run: |
+          .venv/bin/ruff format --check .
+          .venv/bin/ruff check .
+      - name: Tests
+        run: .venv/bin/python -m pytest -q
+      - name: Build the wheel
+        run: uv build --wheel
+
+  real-models:
+    if: github.event_name == 'workflow_dispatch' && inputs.real_models
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: |
+          uv venv
+          uv pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[dev]"
+      - run: .venv/bin/python -m pytest -q -m model

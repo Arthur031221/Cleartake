@@ -1,0 +1,31 @@
+{
+  "utterances": 103,
+  "every": 8,
+  "device": "cuda (NVIDIA GeForce RTX 5090)",
+  "variants": {
+    "noisy": {
+      "ovrl_mos": 2.592,
+      "sig_mos": 3.219,
+      "bak_mos": 2.983,
+      "wer_vs_clean_transcript": 0.0543,
+      "drift_rate_vs_noisy": null,
+      "speed_x_realtime": null
+    },
+    "classic": {
+      "ovrl_mos": 3.173,
+      "sig_mos": 3.444,
+      "bak_mos": 4.059,
+      "wer_vs_clean_transcript": 0.0514,
+      "drift_rate_vs_noisy": 0.0695,
+      "speed_x_realtime": 12.7
+    },
+    "studio": {
+      "ovrl_mos": 3.138,
+      "sig_mos": 3.395,
+      "bak_mos": 4.076,
+      "wer_vs_clean_transcript": 0.0657,
+      "drift_rate_vs_noisy": 0.0767,
+      "speed_x_realtime": 13.8
+    }
+  }
+}

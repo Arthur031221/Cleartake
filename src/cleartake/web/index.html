@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cleartake</title>
+  <meta name="description" content="Clean up noisy speech recordings and videos on your own machine. Nothing is uploaded.">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    const saved = localStorage.getItem("cleartake.theme");
+    if (saved) document.documentElement.dataset.theme = saved;
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./" aria-label="Cleartake">
+      <img src="logo.svg" alt="" width="28" height="28"><span>Cleartake</span>
+    </a>
+    <div class="top-controls">
+      <label class="visually-hidden" for="lang" data-i18n="lang.label">Language</label>
+      <select id="lang" class="select-small"></select>
+      <button id="theme" class="icon-btn" type="button" aria-label="Theme" data-i18n-aria="theme.toggle">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 12.4 3.1 9 9 0 0 0 12 3z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="demo-banner" class="banner" hidden><span data-i18n="demo.banner"></span></div>
+
+    <section id="intro" class="hero">
+      <h1 data-i18n="app.tagline">Clean speech, on your own machine.</h1>
+      <p data-i18n="app.sub">Drop in a noisy recording or video. Nothing is uploaded.</p>
+    </section>
+
+    <section id="setup" class="card">
+      <label id="drop" class="drop" tabindex="0">
+        <input id="file" type="file" accept="audio/*,video/*,.mkv,.m4a,.flac,.opus" hidden>
+        <svg class="drop-wave" viewBox="0 0 120 40" aria-hidden="true">
+          <g class="noisy"><path d="M0 20 l4 -6 l3 14 l4 -18 l3 22 l4 -10 l3 8 l4 -14 l3 12 l4 -4 l3 6 l4 -16 l3 20 l4 -12 l3 8 l4 -6 l3 4 l4 -8 l3 12 l4 -14 l3 8 l4 -2 l3 6 l4 -10 l3 10 l4 -6 l3 4 l4 -2 l3 4"/></g>
+          <path class="clean" d="M0 20 H120"/>
+        </svg>
+        <span class="drop-title" data-i18n="drop.title">Drop an audio or video file</span>
+        <span class="drop-hint" data-i18n="drop.hint">or click to choose</span>
+        <span id="file-name" class="file-name" hidden></span>
+      </label>
+
+      <div class="options">
+        <fieldset class="field">
+          <legend data-i18n="opt.engine">Engine</legend>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="engine" value="classic"><span data-i18n="engine.classic">Classic</span></label>
+            <label><input type="radio" name="engine" value="studio" checked><span data-i18n="engine.studio">Studio</span></label>
+          </div>
+          <small id="engine-hint" class="hint"></small>
+        </fieldset>
+        <div class="field">
+          <label for="strength" data-i18n="opt.strength">Strength</label>
+          <div class="range-row"><input id="strength" type="range" min="0" max="100" value="100"><output id="strength-out">100%</output></div>
+          <small class="hint" data-i18n="opt.strength.hint">Lower values blend some of the original back in.</small>
+        </div>
+        <div class="field">
+          <label for="preset" data-i18n="opt.loudness">Loudness</label>
+          <select id="preset">
+            <option value="podcast" data-i18n="loud.podcast">Podcast, -16 LUFS</option>
+            <option value="youtube" data-i18n="loud.youtube">YouTube, -14 LUFS</option>
+            <option value="broadcast" data-i18n="loud.broadcast">Broadcast, -23 LUFS</option>
+            <option value="none" data-i18n="loud.none">Leave as is</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="switch"><input id="check" type="checkbox" checked><span class="track"></span><span data-i18n="opt.check">Word drift check</span></label>
+          <small class="hint" data-i18n="opt.check.hint">Transcribes before and after and lists any word that changed.</small>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="go" class="primary" type="button" disabled data-i18n="btn.enhance">Enhance</button>
+        <button id="sample" class="ghost" type="button" hidden data-i18n="demo.try">Play the sample</button>
+      </div>
+    </section>
+
+    <section id="progress" class="card" hidden aria-live="polite">
+      <h2 id="progress-title"></h2>
+      <ol id="stages" class="stages"></ol>
+      <p id="queue" class="hint"></p>
+      <p id="error" class="error" role="alert" hidden></p>
+      <button id="retry" class="ghost" type="button" hidden data-i18n="download.another">Enhance another file</button>
+    </section>
+
+    <section id="result" hidden>
+      <div class="card compare">
+        <div class="compare-head">
+          <div class="ab" role="group">
+            <button id="ab-a" type="button" data-mode="original"><span data-i18n="result.original">Original</span><kbd>B</kbd></button>
+            <button id="ab-b" type="button" data-mode="enhanced" aria-pressed="true"><span data-i18n="result.enhanced">Enhanced</span><kbd>B</kbd></button>
+            <i class="ab-thumb"></i>
+          </div>
+          <div class="transport">
+            <button id="play" class="primary round" type="button" aria-label="Play"><svg viewBox="0 0 24 24" width="20" height="20"><path id="play-icon" fill="currentColor" d="M8 5v14l11-7z"/></svg></button>
+            <span id="time" class="mono">0:00 / 0:00</span>
+            <label class="switch small"><input id="loop" type="checkbox"><span class="track"></span><span data-i18n="result.loop">Loop selection</span></label>
+            <button id="clear" class="ghost small" type="button" hidden data-i18n="result.clear">Clear selection</button>
+          </div>
+        </div>
+        <div id="stage" class="stage" tabindex="0">
+          <canvas id="spec-original" class="layer"></canvas>
+          <canvas id="spec-enhanced" class="layer"></canvas>
+          <canvas id="wave" class="wave"></canvas>
+          <div id="region" class="region" hidden></div>
+          <div id="playhead" class="playhead"></div>
+        </div>
+        <p class="hint" data-i18n="result.hint">Drag on the picture to select a part. B switches, Space plays.</p>
+      </div>
+
+      <div class="grid">
+        <div class="card stat"><h3 data-i18n="stats.loudness">Loudness</h3><p id="stat-lufs" class="big mono"></p><small id="stat-lufs-sub" class="hint"></small></div>
+        <div class="card stat"><h3 data-i18n="stats.peak">True peak</h3><p id="stat-peak" class="big mono"></p><small id="stat-peak-sub" class="hint"></small></div>
+        <div class="card stat"><h3 data-i18n="stats.speed">Speed</h3><p id="stat-speed" class="big mono"></p><small id="stat-device" class="hint"></small></div>
+      </div>
+
+      <div class="card" id="drift">
+        <div class="drift-head"><h3 data-i18n="drift.title">Word drift check</h3><span id="drift-chip" class="chip"></span></div>
+        <p class="hint" id="drift-explain" data-i18n="drift.explain"></p>
+        <p id="transcript" class="transcript"></p>
+        <ul class="legend" id="legend" hidden>
+          <li><mark class="changed"></mark><span data-i18n="drift.changed">changed</span></li>
+          <li><mark class="dropped"></mark><span data-i18n="drift.dropped">dropped</span></li>
+          <li><mark class="added"></mark><span data-i18n="drift.added">added</span></li>
+        </ul>
+      </div>
+
+      <div class="actions">
+        <a id="dl-audio" class="primary btn" href="#" download data-i18n="download.audio">Download result</a>
+        <a id="dl-report" class="ghost btn" href="#" download data-i18n="download.report">Download report</a>
+        <button id="again" class="ghost" type="button" data-i18n="download.another">Enhance another file</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span data-i18n="footer.local">Everything stays on this computer.</span>
+    <a href="https://github.com/Arthur031221/Cleartake">GitHub</a>
+    <span id="version" class="mono"></span>
+  </footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
